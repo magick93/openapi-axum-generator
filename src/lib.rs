@@ -1,6 +1,7 @@
 use askama::Template;
 use openapiv3::OpenAPI;
 use serde::Serialize;
+use std::any::Any;
 
 #[derive(Template)]
 #[template(path = "axum.rs.jinja")]
@@ -66,7 +67,12 @@ impl AxumTemplate<'_> {
                                             openapiv3::ReferenceOr::Item(param) => Some(Parameter {
                                                 name: param.parameter_data_ref().name.clone(),
                                                 param_type: match &param.parameter_data_ref().format {
-                                                    openapiv3::ParameterSchemaOrContent::Schema(schema) => schema.to_string(),
+                                                    openapiv3::ParameterSchemaOrContent::Schema(schema_ref) => {
+                                                        match schema_ref {
+                                                            openapiv3::ReferenceOr::Item(schema) => format!("{:?}", schema.schema_kind.type_id()),
+                                                            _ => "String".to_string(),
+                                                        }
+                                                    },
                                                     openapiv3::ParameterSchemaOrContent::Content(_) => "Content".to_string(),
                                                 },
                                                 required: param.parameter_data_ref().required,
@@ -102,16 +108,17 @@ impl AxumTemplate<'_> {
                     .filter_map(|(name, schema_ref)| {
                         match schema_ref {
                             openapiv3::ReferenceOr::Item(schema) => {
-                                let fields = if let Some(properties) = &schema.schema_kind.object().properties {
-                                    properties.iter()
-                                        .map(|(field_name, field_schema)| SchemaField {
-                                            name: field_name.clone(),
-                                            field_type: field_schema.to_string(),
-                                            required: schema.schema_data.nullable,
-                                        })
-                                        .collect()
-                                } else {
-                                    Vec::new()
+                                let fields = match &schema.schema_kind {
+                                    openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                                        obj.properties.iter()
+                                            .map(|(field_name, field_schema)| SchemaField {
+                                                name: field_name.clone(),
+                                                field_type: field_schema.to_string(),
+                                                required: obj.required.contains(field_name),
+                                            })
+                                            .collect()
+                                    },
+                                    _ => Vec::new(),
                                 };
                                 Some(Schema {
                                     name: name.clone(),

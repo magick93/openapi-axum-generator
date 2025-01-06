@@ -1,0 +1,38 @@
+use axum::{
+    body::Body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Serialize;
+
+// Generate models from OpenAPI schemas
+{% for schema in schemas %}
+#[derive(Serialize)]
+struct {{ schema.name }} {
+    {% for field in schema.fields %}
+    {{ field.name }}: {{ field.field_type }},
+    {% endfor %}
+}
+{% endfor %}
+
+// Generate handlers from OpenAPI paths
+{% for route in routes %}
+// Handler for {{ route.path }}
+async fn {{ route.handler_name }}() -> impl IntoResponse {
+    Response::builder()
+        .status(StatusCode::OK)
+        .body(Body::from("{{ route.handler_name }} response"))
+        .unwrap()
+}
+{% endfor %}
+
+// Create router with all routes
+pub fn create_router() -> Router {
+    let mut router = Router::new();
+    {% for route in routes %}
+    router = router.route("{{ route.path }}", {{ route.method }}!({{ route.handler_name }}));
+    {% endfor %}
+    router
+}

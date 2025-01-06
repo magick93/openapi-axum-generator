@@ -50,49 +50,61 @@ impl AxumTemplate<'_> {
     pub fn from_openapi(openapi: &OpenAPI) -> Self {
         let routes = openapi.paths.iter()
             .flat_map(|(path, item)| {
-                item.operations.iter()
-                    .map(|(method, operation)| Route {
-                        path: path.clone(),
-                        method: method.to_string().to_uppercase(),
-                        handler_name: format!("handle_{}_{}", method, path.replace('/', "_").trim_matches('_')),
-                        parameters: operation.parameters.iter()
-                            .filter_map(|param_ref| {
-                                param_ref.as_ref().ok().map(|param| Parameter {
-                                    name: param.name.clone(),
-                                    param_type: param.schema.as_ref().map_or("String".to_string(), |s| s.to_string()),
-                                    required: param.required,
-                                })
+                match item {
+                    openapiv3::ReferenceOr::Item(path_item) => {
+                        path_item.options.iter()
+                            .map(|(method, operation)| Route {
+                                path: path.clone(),
+                                method: method.to_string().to_uppercase(),
+                                handler_name: format!("handle_{}_{}", method, path.replace('/', "_").trim_matches('_')),
+                                parameters: operation.parameters.iter()
+                                    .filter_map(|param_ref| {
+                                        match param_ref {
+                                            openapiv3::ReferenceOr::Item(param) => Some(Parameter {
+                                                name: param.name.clone(),
+                                                param_type: param.schema.as_ref().map_or("String".to_string(), |s| s.to_string()),
+                                                required: param.required,
+                                            }),
+                                            _ => None,
+                                        }
+                                    })
+                                    .collect(),
+                                responses: operation.responses.responses.iter()
+                                    .map(|(status_code, response)| Response {
+                                        status_code: status_code.to_string(),
+                                        description: response.description.clone().unwrap_or_default(),
+                                        content_type: response.content.keys().next().cloned().unwrap_or_default(),
+                                    })
+                                    .collect(),
                             })
-                            .collect(),
-                        responses: operation.responses.responses.iter()
-                            .map(|(status_code, response)| Response {
-                                status_code: status_code.to_string(),
-                                description: response.description.clone().unwrap_or_default(),
-                                content_type: response.content.keys().next().cloned().unwrap_or_default(),
-                            })
-                            .collect(),
-                    })
+                            .collect::<Vec<_>>()
+                    },
+                    _ => Vec::new(),
+                }
             })
             .collect();
 
         let schemas = openapi.components.as_ref()
             .map_or(Vec::new(), |components| {
                 components.schemas.iter()
-                    .map(|(name, schema_ref)| {
-                        let schema = schema_ref.as_ref().ok()?;
-                        let fields = schema.properties.iter()
-                            .map(|(field_name, field_schema)| SchemaField {
-                                name: field_name.clone(),
-                                field_type: field_schema.to_string(),
-                                required: schema.required.contains(field_name),
-                            })
-                            .collect();
-                        Some(Schema {
-                            name: name.clone(),
-                            fields,
-                        })
+                    .filter_map(|(name, schema_ref)| {
+                        match schema_ref {
+                            openapiv3::ReferenceOr::Item(schema) => {
+                                let fields = schema.schema_data.iter()
+                                    .map(|(field_name, field_schema)| SchemaField {
+                                        name: field_name.clone(),
+                                        field_type: field_schema.to_string(),
+                                        required: schema.schema_data.nullable,
+                                    })
+                                    .collect();
+                                Some(Schema {
+                                    name: name.clone(),
+                                    fields,
+                                })
+                            },
+                            _ => None,
+                        }
                     })
-                    .filter_map(|x| x)
                     .collect()
             });
 

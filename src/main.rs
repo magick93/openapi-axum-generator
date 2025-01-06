@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 use clap::{Arg, Command};
 use serde_json::from_str;
 use openapiv3::OpenAPI;
@@ -33,10 +33,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load and parse OpenAPI spec
     let spec_str = fs::read_to_string(input_file)?;
-    let _openapi_spec: OpenAPI = from_str(&spec_str)?;
+    let openapi_spec: OpenAPI = from_str(&spec_str)?;
 
-    println!("Successfully parsed OpenAPI spec from {}", input_file);
-    println!("Output will be written to {}", output_dir);
+    // Convert OpenAPI spec to template data
+    let template = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
+    // Render template and write output
+    let output = template.render()
+        .map_err(|e| format!("Template rendering failed: {}", e))?;
+    fs::write(Path::new(output_dir).join("axum_server.rs"), output)?;
+
+    println!("Successfully generated Axum server code in {}", output_dir);
     Ok(())
 }

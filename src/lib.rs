@@ -48,7 +48,13 @@ pub struct SchemaField {
 }
 
 impl AxumTemplate<'_> {
-    pub fn from_openapi(openapi: &OpenAPI) -> Self {
+    fn schema_to_string(schema: &openapiv3::ReferenceOr<Box<openapiv3::Schema>>) -> String {
+        match schema {
+            openapiv3::ReferenceOr::Item(schema) => format!("{:?}", schema.schema_kind),
+            openapiv3::ReferenceOr::Reference { reference } => reference.clone(),
+        }
+    }
+    pub fn from_openapi<'a>(openapi: &'a OpenAPI) -> AxumTemplate<'a> {
         let routes = openapi.paths.iter()
             .flat_map(|(path, item)| {
                 match item {
@@ -113,7 +119,7 @@ impl AxumTemplate<'_> {
                                         obj.properties.iter()
                                             .map(|(field_name, field_schema)| SchemaField {
                                                 name: field_name.clone(),
-                                                field_type: field_schema.to_string(),
+                                                field_type: Self::schema_to_string(field_schema),
                                                 required: obj.required.contains(field_name),
                                             })
                                             .collect()

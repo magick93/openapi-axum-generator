@@ -52,7 +52,10 @@ impl AxumTemplate<'_> {
             .flat_map(|(path, item)| {
                 match item {
                     openapiv3::ReferenceOr::Item(path_item) => {
-                        path_item.options.iter()
+                        path_item.iter()
+                            .flat_map(|(method, operation)| {
+                                std::iter::once((method, operation))
+                            })
                             .map(|(method, operation)| Route {
                                 path: path.clone(),
                                 method: method.to_string().to_uppercase(),
@@ -61,9 +64,12 @@ impl AxumTemplate<'_> {
                                     .filter_map(|param_ref| {
                                         match param_ref {
                                             openapiv3::ReferenceOr::Item(param) => Some(Parameter {
-                                                name: param.name.clone(),
-                                                param_type: param.schema.as_ref().map_or("String".to_string(), |s| s.to_string()),
-                                                required: param.required,
+                                                name: param.parameter_data_ref().name.clone(),
+                                                param_type: match &param.parameter_data_ref().format {
+                                                    openapiv3::ParameterSchemaOrContent::Schema(schema) => schema.to_string(),
+                                                    openapiv3::ParameterSchemaOrContent::Content(_) => "Content".to_string(),
+                                                },
+                                                required: param.parameter_data_ref().required,
                                             }),
                                             _ => None,
                                         }
@@ -72,8 +78,14 @@ impl AxumTemplate<'_> {
                                 responses: operation.responses.responses.iter()
                                     .map(|(status_code, response)| Response {
                                         status_code: status_code.to_string(),
-                                        description: response.description.clone().unwrap_or_default(),
-                                        content_type: response.content.keys().next().cloned().unwrap_or_default(),
+                                        description: match response {
+                                            openapiv3::ReferenceOr::Item(resp) => resp.description.clone(),
+                                            _ => String::new(),
+                                        },
+                                        content_type: match response {
+                                            openapiv3::ReferenceOr::Item(resp) => resp.content.keys().next().cloned().unwrap_or_default(),
+                                            _ => String::new(),
+                                        },
                                     })
                                     .collect(),
                             })
@@ -90,13 +102,17 @@ impl AxumTemplate<'_> {
                     .filter_map(|(name, schema_ref)| {
                         match schema_ref {
                             openapiv3::ReferenceOr::Item(schema) => {
-                                let fields = schema.schema_data.iter()
-                                    .map(|(field_name, field_schema)| SchemaField {
-                                        name: field_name.clone(),
-                                        field_type: field_schema.to_string(),
-                                        required: schema.schema_data.nullable,
-                                    })
-                                    .collect();
+                                let fields = if let Some(properties) = &schema.schema_kind.object().properties {
+                                    properties.iter()
+                                        .map(|(field_name, field_schema)| SchemaField {
+                                            name: field_name.clone(),
+                                            field_type: field_schema.to_string(),
+                                            required: schema.schema_data.nullable,
+                                        })
+                                        .collect()
+                                } else {
+                                    Vec::new()
+                                };
                                 Some(Schema {
                                     name: name.clone(),
                                     fields,

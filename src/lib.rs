@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::any::Any;
 
 #[derive(Template)]
-#[template(path = "axum.rs.jinja")]
+#[template(path = "axum_utoipa.rs.jinja")]
 pub struct AxumTemplate<'a> {
     pub openapi: &'a OpenAPI,
     pub routes: Vec<Route>,
@@ -55,84 +55,96 @@ impl AxumTemplate<'_> {
         }
     }
     pub fn from_openapi<'a>(openapi: &'a OpenAPI) -> AxumTemplate<'a> {
-        let routes = openapi.paths.iter()
-            .flat_map(|(path, item)| {
-                match item {
-                    openapiv3::ReferenceOr::Item(path_item) => {
-                        path_item.iter()
-                            .flat_map(|(method, operation)| {
-                                std::iter::once((method, operation))
-                            })
-                            .map(|(method, operation)| Route {
-                                path: path.clone(),
-                                method: method.to_string().to_uppercase(),
-                                handler_name: format!("handle_{}_{}", method, path.replace('/', "_").trim_matches('_')),
-                                parameters: operation.parameters.iter()
-                                    .filter_map(|param_ref| {
-                                        match param_ref {
-                                            openapiv3::ReferenceOr::Item(param) => Some(Parameter {
-                                                name: param.parameter_data_ref().name.clone(),
-                                                param_type: match &param.parameter_data_ref().format {
-                                                    openapiv3::ParameterSchemaOrContent::Schema(schema_ref) => {
-                                                        match schema_ref {
-                                                            openapiv3::ReferenceOr::Item(schema) => format!("{:?}", schema.schema_kind.type_id()),
-                                                            _ => "String".to_string(),
-                                                        }
-                                                    },
-                                                    openapiv3::ParameterSchemaOrContent::Content(_) => "Content".to_string(),
-                                                },
-                                                required: param.parameter_data_ref().required,
-                                            }),
-                                            _ => None,
+        let routes = openapi
+            .paths
+            .iter()
+            .flat_map(|(path, item)| match item {
+                openapiv3::ReferenceOr::Item(path_item) => path_item
+                    .iter()
+                    .flat_map(|(method, operation)| std::iter::once((method, operation)))
+                    .map(|(method, operation)| Route {
+                        path: path.clone(),
+                        method: method.to_string().to_uppercase(),
+                        handler_name: format!(
+                            "handle_{}_{}",
+                            method,
+                            path.replace('/', "_").trim_matches('_')
+                        ),
+                        parameters: operation
+                            .parameters
+                            .iter()
+                            .filter_map(|param_ref| match param_ref {
+                                openapiv3::ReferenceOr::Item(param) => Some(Parameter {
+                                    name: param.parameter_data_ref().name.clone(),
+                                    param_type: match &param.parameter_data_ref().format {
+                                        openapiv3::ParameterSchemaOrContent::Schema(schema_ref) => {
+                                            match schema_ref {
+                                                openapiv3::ReferenceOr::Item(schema) => {
+                                                    format!("{:?}", schema.schema_kind.clone())
+                                                }
+                                                _ => "String".to_string(),
+                                            }
                                         }
-                                    })
-                                    .collect(),
-                                responses: operation.responses.responses.iter()
-                                    .map(|(status_code, response)| Response {
-                                        status_code: status_code.to_string(),
-                                        description: match response {
-                                            openapiv3::ReferenceOr::Item(resp) => resp.description.clone(),
-                                            _ => String::new(),
-                                        },
-                                        content_type: match response {
-                                            openapiv3::ReferenceOr::Item(resp) => resp.content.keys().next().cloned().unwrap_or_default(),
-                                            _ => String::new(),
-                                        },
-                                    })
-                                    .collect(),
+                                        openapiv3::ParameterSchemaOrContent::Content(_) => {
+                                            "Content".to_string()
+                                        }
+                                    },
+                                    required: param.parameter_data_ref().required,
+                                }),
+                                _ => None,
                             })
-                            .collect::<Vec<_>>()
-                    },
-                    _ => Vec::new(),
-                }
+                            .collect(),
+                        responses: operation
+                            .responses
+                            .responses
+                            .iter()
+                            .map(|(status_code, response)| Response {
+                                status_code: status_code.to_string(),
+                                description: match response {
+                                    openapiv3::ReferenceOr::Item(resp) => resp.description.clone(),
+                                    _ => String::new(),
+                                },
+                                content_type: match response {
+                                    openapiv3::ReferenceOr::Item(resp) => {
+                                        resp.content.keys().next().cloned().unwrap_or_default()
+                                    }
+                                    _ => String::new(),
+                                },
+                            })
+                            .collect(),
+                    })
+                    .collect::<Vec<_>>(),
+                _ => Vec::new(),
             })
             .collect();
 
-        let schemas = openapi.components.as_ref()
+        let schemas = openapi
+            .components
+            .as_ref()
             .map_or(Vec::new(), |components| {
-                components.schemas.iter()
-                    .filter_map(|(name, schema_ref)| {
-                        match schema_ref {
-                            openapiv3::ReferenceOr::Item(schema) => {
-                                let fields = match &schema.schema_kind {
-                                    openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
-                                        obj.properties.iter()
-                                            .map(|(field_name, field_schema)| SchemaField {
-                                                name: field_name.clone(),
-                                                field_type: Self::schema_to_string(field_schema),
-                                                required: obj.required.contains(field_name),
-                                            })
-                                            .collect()
-                                    },
-                                    _ => Vec::new(),
-                                };
-                                Some(Schema {
-                                    name: name.clone(),
-                                    fields,
-                                })
-                            },
-                            _ => None,
+                components
+                    .schemas
+                    .iter()
+                    .filter_map(|(name, schema_ref)| match schema_ref {
+                        openapiv3::ReferenceOr::Item(schema) => {
+                            let fields = match &schema.schema_kind {
+                                openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => obj
+                                    .properties
+                                    .iter()
+                                    .map(|(field_name, field_schema)| SchemaField {
+                                        name: field_name.clone(),
+                                        field_type: Self::schema_to_string(field_schema),
+                                        required: obj.required.contains(field_name),
+                                    })
+                                    .collect(),
+                                _ => Vec::new(),
+                            };
+                            Some(Schema {
+                                name: name.clone(),
+                                fields,
+                            })
                         }
+                        _ => None,
                     })
                     .collect()
             });

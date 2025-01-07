@@ -6,6 +6,7 @@ mod routes_translator;
 mod schemas_translator;
 #[cfg(test)]
 mod routes_translator_test;
+#[cfg(test)]
 mod routes_translator_petstore_test;
 
 use routes_translator::RoutesTranslator;

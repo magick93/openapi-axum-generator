@@ -1,4 +1,4 @@
-use openapiv3::{OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathItem, ReferenceOr, Response, Schema, SchemaKind, Type};
+use openapiv3::{OpenAPI, ParameterSchemaOrContent, ReferenceOr};
 
 use super::{Parameter as RouteParameter, Response as RouteResponse, Route};
 

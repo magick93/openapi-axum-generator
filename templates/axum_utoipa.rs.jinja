@@ -1,0 +1,78 @@
+use axum::{
+    body::Body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Serialize;
+use utoipa::{OpenApi, ToSchema};
+
+// Generate models from OpenAPI schemas with ToSchema derive
+{% for schema in schemas %}
+#[derive(Serialize, ToSchema)]
+struct {{ schema.name }} {
+    {% for field in schema.fields %}
+    #[schema(example = "{{ field.example }}")]
+    {{ field.name }}: {{ field.field_type }},
+    {% endfor %}
+}
+{% endfor %}
+
+// Generate handlers from OpenAPI paths with utoipa path annotations
+{% for route in routes %}
+/// {{ route.description }}
+#[utoipa::path(
+    {{ route.method }},
+    path = "{{ route.path }}",
+    responses(
+        (status = 200, description = "{{ route.success_description }}", body = {{ route.response_type }}),
+        (status = 404, description = "{{ route.error_description }}")
+    ),
+    params(
+        {% for param in route.params %}
+        ("{{ param.name }}" = {{ param.type }}, {{ param.in }}, description = "{{ param.description }}"),
+        {% endfor %}
+    )
+)]
+async fn {{ route.handler_name }}() -> impl IntoResponse {
+    Response::builder()
+        .status(StatusCode::OK)
+        .body(Body::from("{{ route.handler_name }} response"))
+        .unwrap()
+}
+{% endfor %}
+
+// Create router with all routes
+pub fn create_router() -> Router {
+    let mut router = Router::new();
+    {% for route in routes %}
+    router = router.route("{{ route.path }}", {{ route.method }}!({{ route.handler_name }}));
+    {% endfor %}
+    router
+}
+
+// Generate OpenAPI documentation
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        {% for route in routes %}
+        {{ route.handler_name }},
+        {% endfor %}
+    ),
+    components(
+        schemas(
+            {% for schema in schemas %}
+            {{ schema.name }},
+            {% endfor %}
+        )
+    ),
+    tags(
+        (name = "{{ api_name }}", description = "{{ api_description }}")
+    )
+)]
+struct ApiDoc;
+
+pub fn openapi_spec() -> utoipa::openapi::OpenApi {
+    ApiDoc::openapi()
+}

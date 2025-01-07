@@ -16,56 +16,82 @@ impl RoutesTranslator {
                 ReferenceOr::Item(path_item) => path_item
                     .iter()
                     .flat_map(|(method, operation)| std::iter::once((method, operation)))
-                    .map(|(method, operation)| Route {
-                        path: path.clone(),
-                        method: method.to_string().to_uppercase(),
-                        handler_name: format!(
-                            "handle_{}_{}",
-                            method,
-                            path.replace('/', "_").trim_matches('_')
-                        ),
-                        parameters: operation
-                            .parameters
-                            .iter()
-                            .filter_map(|param_ref| match param_ref {
-                                ReferenceOr::Item(param) => Some(RouteParameter {
-                                    name: param.parameter_data_ref().name.clone(),
-                                    param_type: match &param.parameter_data_ref().format {
-                                        ParameterSchemaOrContent::Schema(schema_ref) => {
-                                            match schema_ref {
-                                                ReferenceOr::Item(schema) => {
-                                                    format!("{:?}", schema.schema_kind.clone())
-                                                }
-                                                _ => "String".to_string(),
-                                            }
-                                        }
-                                        ParameterSchemaOrContent::Content(_) => {
-                                            "Content".to_string()
-                                        }
-                                    },
-                                    required: param.parameter_data_ref().required,
-                                }),
+                    .map(|(method, operation)| {
+                        // Get schema name from request body or first response
+                        let schema_name = operation.request_body.as_ref()
+                            .and_then(|rb| match rb {
+                                ReferenceOr::Item(body) => body.content.values().next()
+                                    .and_then(|media| match &media.schema {
+                                        Some(ReferenceOr::Item(schema)) => schema.schema_data.title.clone(),
+                                        _ => None,
+                                    }),
                                 _ => None,
                             })
-                            .collect(),
-                        responses: operation
-                            .responses
-                            .responses
-                            .iter()
-                            .map(|(status_code, response)| RouteResponse {
-                                status_code: status_code.to_string(),
-                                description: match response {
-                                    ReferenceOr::Item(resp) => resp.description.clone(),
-                                    _ => String::new(),
-                                },
-                                content_type: match response {
-                                    ReferenceOr::Item(resp) => {
-                                        resp.content.keys().next().cloned().unwrap_or_default()
-                                    }
-                                    _ => String::new(),
-                                },
-                            })
-                            .collect(),
+                            .or_else(|| operation.responses.responses.values().next()
+                                .and_then(|resp| match resp {
+                                    ReferenceOr::Item(r) => r.content.values().next()
+                                        .and_then(|media| match &media.schema {
+                                            Some(ReferenceOr::Item(schema)) => schema.schema_data.title.clone(),
+                                            _ => None,
+                                        }),
+                                    _ => None,
+                                }))
+                            .unwrap_or_else(|| "DefaultSchema".to_string());
+
+                        Route {
+                            path: path.clone(),
+                            method: method.to_string().to_uppercase(),
+                            handler_name: format!(
+                                "handle_{}_{}",
+                                method,
+                                path.replace('/', "_").trim_matches('_')
+                            ),
+                            schema: super::SchemaRef {
+                                name: schema_name,
+                            },
+                            parameters: operation
+                                .parameters
+                                .iter()
+                                .filter_map(|param_ref| match param_ref {
+                                    ReferenceOr::Item(param) => Some(RouteParameter {
+                                        name: param.parameter_data_ref().name.clone(),
+                                        param_type: match &param.parameter_data_ref().format {
+                                            ParameterSchemaOrContent::Schema(schema_ref) => {
+                                                match schema_ref {
+                                                    ReferenceOr::Item(schema) => {
+                                                        format!("{:?}", schema.schema_kind.clone())
+                                                    }
+                                                    _ => "String".to_string(),
+                                                }
+                                            }
+                                            ParameterSchemaOrContent::Content(_) => {
+                                                "Content".to_string()
+                                            }
+                                        },
+                                        required: param.parameter_data_ref().required,
+                                    }),
+                                    _ => None,
+                                })
+                                .collect(),
+                            responses: operation
+                                .responses
+                                .responses
+                                .iter()
+                                .map(|(status_code, response)| RouteResponse {
+                                    status_code: status_code.to_string(),
+                                    description: match response {
+                                        ReferenceOr::Item(resp) => resp.description.clone(),
+                                        _ => String::new(),
+                                    },
+                                    content_type: match response {
+                                        ReferenceOr::Item(resp) => {
+                                            resp.content.keys().next().cloned().unwrap_or_default()
+                                        }
+                                        _ => String::new(),
+                                    },
+                                })
+                                .collect(),
+                        }
                     })
                     .collect::<Vec<_>>(),
                 _ => Vec::new(),

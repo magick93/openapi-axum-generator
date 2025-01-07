@@ -2,6 +2,7 @@ use askama::Template;
 use openapiv3::OpenAPI;
 use serde::Serialize;
 
+mod filters;
 mod routes_translator;
 mod schemas_translator;
 #[cfg(test)]
@@ -27,6 +28,12 @@ pub struct Route {
     pub handler_name: String,
     pub parameters: Vec<Parameter>,
     pub responses: Vec<Response>,
+    pub schema: SchemaRef,
+}
+
+#[derive(Serialize)]
+pub struct SchemaRef {
+    pub name: String,
 }
 
 #[derive(Serialize)]
@@ -53,6 +60,7 @@ pub struct Schema {
 pub struct SchemaField {
     pub name: String,
     pub field_type: String,
+    pub rust_type: String,
     pub required: bool,
 }
 

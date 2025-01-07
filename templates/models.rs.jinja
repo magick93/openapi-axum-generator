@@ -1,0 +1,17 @@
+{% extends "base.rs.jinja" %}
+
+{% block content %}
+use serde::{Serialize, Deserialize};
+use utoipa::ToSchema;
+
+{% for schema in schemas %}
+/// {{ schema.name }} model
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct {{ schema.name }} {
+    {% for field in schema.fields %}
+    /// {{ field.name }} field
+    pub {{ field.name }}: {{ field.rust_type|safe }},
+    {% endfor %}
+}
+{% endfor %}
+{% endblock %}

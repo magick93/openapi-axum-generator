@@ -1,0 +1,16 @@
+{% extends "base.rs.jinja" %}
+
+{% block content %}
+// Documentation template
+API Documentation:
+- Paths:
+{% for route in routes %}
+  - {{ route.method }} {{ route.path }}
+{% endfor %}
+- Schemas:
+{% for schema in schemas %}
+  - {{ schema.name }}
+{% endfor %}
+- Security:
+  - api_key
+{% endblock %}

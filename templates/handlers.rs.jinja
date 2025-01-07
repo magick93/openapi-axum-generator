@@ -1,0 +1,45 @@
+{% extends "base.rs.jinja" %}
+
+{% block content %}
+use axum::{
+    extract::{Path, Query, Json},
+    response::Json as JsonResponse,
+    http::StatusCode,
+};
+use serde::{Serialize, Deserialize};
+use utoipa::ToSchema;
+
+{% for route in routes %}
+#[utoipa::path(
+    {{ route.method }},
+    path = "{{ route.path }}",
+    {% if !route.parameters.is_empty() %}
+    params(
+        {% for param in route.parameters %}
+        ("{{ param.name }}", {% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %}),
+        {% endfor %}
+    ),
+    {% endif %}
+    responses(
+        {% for response in route.responses %}
+        (status = {{ response.status_code }}, description = "{{ response.description }}", body = {% if response.content_type == "application/json" %}Pet{% else %}(){% endif %}),
+        {% endfor %}
+    )
+)]
+pub async fn {{ route.handler_name|sanitize_handler_name }}(
+    {% if !route.parameters.is_empty() %}
+        {% for param in route.parameters %}
+        {% if param.required %}
+        {{ param.name }}: {% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %},
+        {% else %}
+        {{ param.name }}: Option<{% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %}>,
+        {% endif %}
+        {% endfor %}
+    {% endif %}
+) -> Result<JsonResponse<{% if route.responses[0].content_type == "application/json" %}Pet{% else %}(){% endif %}>, StatusCode> {
+    // TODO: Implement handler logic
+    Ok(JsonResponse({% if route.responses[0].content_type == "application/json" %}Pet::default(){% else %}(){% endif %}))
+}
+
+{% endfor %}
+{% endblock %}

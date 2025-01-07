@@ -13,7 +13,7 @@ use utoipa::{OpenApi, ToSchema};
 #[derive(Serialize, ToSchema)]
 struct {{ schema.name }} {
     {% for field in schema.fields %}
-    #[schema(example = "{{ field.example }}")]
+    #[schema(example = "{{ field.field_type }}")]
     {{ field.name }}: {{ field.field_type }},
     {% endfor %}
 }
@@ -21,17 +21,19 @@ struct {{ schema.name }} {
 
 // Generate handlers from OpenAPI paths with utoipa path annotations
 {% for route in routes %}
-/// {{ route.description }}
+/// {{ route.method }} handler for {{ route.path }}
 #[utoipa::path(
     {{ route.method }},
     path = "{{ route.path }}",
     responses(
-        (status = 200, description = "{{ route.success_description }}", body = {{ route.response_type }}),
-        (status = 404, description = "{{ route.error_description }}")
+        {% for response in route.responses %}
+        (status = {{ response.status_code }}, description = "{{ response.description }}", body = {{ response.content_type }}),
+        {% endfor %}
+        (status = 404, description = "not found", body = String),
     ),
     params(
-        {% for param in route.params %}
-        ("{{ param.name }}" = {{ param.type }}, {{ param.in }}, description = "{{ param.description }}"),
+        {% for param in route.parameters %}
+        ("{{ param.name }}" = {{ param.param_type }},  description = "{{ param.name }}", required = {{ param.required }}),
         {% endfor %}
     )
 )]
@@ -67,9 +69,7 @@ pub fn create_router() -> Router {
             {% endfor %}
         )
     ),
-    tags(
-        (name = "{{ api_name }}", description = "{{ api_description }}")
-    )
+    
 )]
 struct ApiDoc;
 

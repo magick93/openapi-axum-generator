@@ -4,11 +4,11 @@ use serde::Serialize;
 
 mod filters;
 mod routes_translator;
-mod schemas_translator;
-#[cfg(test)]
-mod routes_translator_test;
 #[cfg(test)]
 mod routes_translator_petstore_test;
+#[cfg(test)]
+mod routes_translator_test;
+mod schemas_translator;
 
 use routes_translator::RoutesTranslator;
 use schemas_translator::SchemasTranslator;
@@ -68,7 +68,7 @@ impl AxumTemplate<'_> {
     pub fn from_openapi<'a>(openapi: &'a OpenAPI) -> AxumTemplate<'a> {
         let routes_translator = RoutesTranslator::new();
         let schemas_translator = SchemasTranslator::new();
-        
+
         AxumTemplate {
             openapi,
             routes: routes_translator.translate(openapi),

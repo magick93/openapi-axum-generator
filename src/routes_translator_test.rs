@@ -1,5 +1,8 @@
 use super::routes_translator::RoutesTranslator;
-use openapiv3::{OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathItem, ReferenceOr, Response, Schema, SchemaKind, Type, Components, StatusCode};
+use openapiv3::{
+    Components, OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathItem,
+    ReferenceOr, Response, Schema, SchemaKind, StatusCode, Type,
+};
 
 fn create_test_openapi() -> OpenAPI {
     OpenAPI {
@@ -26,7 +29,7 @@ fn test_translate_basic_route() {
                 ..Default::default()
             }),
             ..Default::default()
-        })
+        }),
     );
 
     let translator = RoutesTranslator::new();
@@ -70,7 +73,7 @@ fn test_translate_route_with_parameters() {
                 ..Default::default()
             }),
             ..Default::default()
-        })
+        }),
     );
 
     let translator = RoutesTranslator::new();
@@ -120,7 +123,7 @@ fn test_translate_route_with_responses() {
                 ..Default::default()
             }),
             ..Default::default()
-        })
+        }),
     );
 
     let translator = RoutesTranslator::new();
@@ -129,7 +132,7 @@ fn test_translate_route_with_responses() {
     assert_eq!(routes.len(), 1);
     let route = &routes[0];
     assert_eq!(route.responses.len(), 2);
-    
+
     let success_response = &route.responses[0];
     assert_eq!(success_response.status_code, "200");
     assert_eq!(success_response.description, "Success");

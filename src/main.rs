@@ -1,8 +1,8 @@
-use std::{fs, path::Path};
 use askama::DynTemplate;
 use clap::{Arg, Command};
-use serde_json::from_str;
 use openapiv3::OpenAPI;
+use serde_json::from_str;
+use std::{fs, path::Path};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = Command::new("openapi-axum-generator")
@@ -26,8 +26,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    let input_file = matches.get_one::<String>("input").expect("input is required");
-    let output_dir = matches.get_one::<String>("output").expect("output is required");
+    let input_file = matches
+        .get_one::<String>("input")
+        .expect("input is required");
+    let output_dir = matches
+        .get_one::<String>("output")
+        .expect("output is required");
 
     // Create output directory
     fs::create_dir_all(output_dir)?;
@@ -41,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Render template and write output
     let output = template.dyn_render().unwrap();
-        
+
     fs::write(Path::new(output_dir).join("axum_server.rs"), output)?;
 
     println!("Successfully generated Axum server code in {}", output_dir);

@@ -10,7 +10,8 @@ impl RoutesTranslator {
     }
 
     pub fn translate(&self, openapi: &OpenAPI) -> Vec<Route> {
-        openapi.paths
+        openapi
+            .paths
             .iter()
             .flat_map(|(path, item)| match item {
                 ReferenceOr::Item(path_item) => path_item
@@ -18,24 +19,42 @@ impl RoutesTranslator {
                     .flat_map(|(method, operation)| std::iter::once((method, operation)))
                     .map(|(method, operation)| {
                         // Get schema name from request body or first response
-                        let schema_name = operation.request_body.as_ref()
+                        let schema_name = operation
+                            .request_body
+                            .as_ref()
                             .and_then(|rb| match rb {
-                                ReferenceOr::Item(body) => body.content.values().next()
-                                    .and_then(|media| match &media.schema {
-                                        Some(ReferenceOr::Item(schema)) => schema.schema_data.title.clone(),
-                                        _ => None,
-                                    }),
+                                ReferenceOr::Item(body) => {
+                                    body.content.values().next().and_then(|media| {
+                                        match &media.schema {
+                                            Some(ReferenceOr::Item(schema)) => {
+                                                schema.schema_data.title.clone()
+                                            }
+                                            _ => None,
+                                        }
+                                    })
+                                }
                                 _ => None,
                             })
-                            .or_else(|| operation.responses.responses.values().next()
-                                .and_then(|resp| match resp {
-                                    ReferenceOr::Item(r) => r.content.values().next()
-                                        .and_then(|media| match &media.schema {
-                                            Some(ReferenceOr::Item(schema)) => schema.schema_data.title.clone(),
-                                            _ => None,
-                                        }),
-                                    _ => None,
-                                }))
+                            .or_else(|| {
+                                operation
+                                    .responses
+                                    .responses
+                                    .values()
+                                    .next()
+                                    .and_then(|resp| match resp {
+                                        ReferenceOr::Item(r) => {
+                                            r.content.values().next().and_then(|media| match &media
+                                                .schema
+                                            {
+                                                Some(ReferenceOr::Item(schema)) => {
+                                                    schema.schema_data.title.clone()
+                                                }
+                                                _ => None,
+                                            })
+                                        }
+                                        _ => None,
+                                    })
+                            })
                             .unwrap_or_else(|| "DefaultSchema".to_string());
 
                         Route {
@@ -46,9 +65,7 @@ impl RoutesTranslator {
                                 method,
                                 path.replace('/', "_").trim_matches('_')
                             ),
-                            schema: super::SchemaRef {
-                                name: schema_name,
-                            },
+                            schema: super::SchemaRef { name: schema_name },
                             parameters: operation
                                 .parameters
                                 .iter()

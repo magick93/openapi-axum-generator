@@ -9,7 +9,7 @@ pub fn sanitize_handler_name(name: &str) -> Result<String> {
 pub fn title(s: &str) -> Result<String> {
     let mut result = String::new();
     let mut capitalize = true;
-    
+
     for c in s.chars() {
         if capitalize {
             result.push(c.to_ascii_uppercase());
@@ -17,12 +17,12 @@ pub fn title(s: &str) -> Result<String> {
         } else {
             result.push(c);
         }
-        
+
         if c == ' ' {
             capitalize = true;
         }
     }
-    
+
     Ok(result)
 }
 

@@ -1,4 +1,3 @@
-use askama::DynTemplate;
 use clap::{Arg, Command};
 use openapiv3::OpenAPI;
 use serde_json::from_str;
@@ -40,13 +39,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let spec_str = fs::read_to_string(input_file)?;
     let openapi_spec: OpenAPI = from_str(&spec_str)?;
 
-    // Convert OpenAPI spec to template data
-    let template = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
+    // Generate files
+    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
-    // Render template and write output
-    let output = template.dyn_render().unwrap();
-
-    fs::write(Path::new(output_dir).join("axum_server.rs"), output)?;
+    // Write all generated files
+    for (file_path, content) in files {
+        let full_path = Path::new(output_dir).join(file_path);
+        if let Some(parent) = full_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(full_path, content)?;
+    }
 
     println!("Successfully generated Axum server code in {}", output_dir);
     Ok(())

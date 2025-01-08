@@ -108,6 +108,11 @@ impl RoutesTranslator {
                                     },
                                 })
                                 .collect(),
+                            tags: {
+                                let mut tags = operation.tags.clone();
+                                tags.dedup();
+                                tags
+                            },
                         }
                     })
                     .collect::<Vec<_>>(),

@@ -17,6 +17,31 @@ fn create_test_openapi() -> OpenAPI {
 }
 
 #[test]
+fn test_translate_route_with_tags() {
+    let mut openapi = create_test_openapi();
+    openapi.paths.paths.insert(
+        "/test".to_string(),
+        ReferenceOr::Item(PathItem {
+            get: Some(Operation {
+                operation_id: Some("testOperation".to_string()),
+                parameters: vec![],
+                responses: Default::default(),
+                tags: vec!["pets".to_string()],
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+    );
+
+    let translator = RoutesTranslator::new();
+    let routes = translator.translate(&openapi);
+
+    assert_eq!(routes.len(), 1);
+    let route = &routes[0];
+    assert_eq!(route.tags, vec!["pets"]);
+}
+
+#[test]
 fn test_translate_basic_route() {
     let mut openapi = create_test_openapi();
     openapi.paths.paths.insert(

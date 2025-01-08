@@ -13,6 +13,7 @@ use utoipa::ToSchema;
 #[utoipa::path(
     {{ route.method }},
     path = "{{ route.path }}",
+    tag = "{{ route.tag }}",
     {% if !route.parameters.is_empty() %}
     params(
         {% for param in route.parameters %}
@@ -26,7 +27,7 @@ use utoipa::ToSchema;
         {% endfor %}
     )
 )]
-pub async fn {{ route.handler_name|sanitize_handler_name }}(
+pub async fn {{ route.handler_name.split("::").last().unwrap()|sanitize_handler_name }}(
     {% if !route.parameters.is_empty() %}
         {% for param in route.parameters %}
         {% if param.required %}

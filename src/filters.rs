@@ -1,31 +1,21 @@
 use askama::Result;
 
-pub fn sanitize_handler_name(name: &str) -> Result<String> {
-    let name = name.replace("{", "").replace("}", "");
-    let name = name.replace("-", "_");
-    Ok(name)
-}
-
-pub fn title(s: &str) -> Result<String> {
-    let mut result = String::new();
-    let mut capitalize = true;
-
-    for c in s.chars() {
-        if capitalize {
-            result.push(c.to_ascii_uppercase());
-            capitalize = false;
-        } else {
-            result.push(c);
-        }
-
-        if c == ' ' {
-            capitalize = true;
-        }
+pub fn is_pet_id_route(path: &str) -> Result<String> {
+    if path.contains("{petId}") {
+        Ok("_petid".to_string())
+    } else {
+        Ok("".to_string())
     }
-
-    Ok(result)
 }
 
-pub fn replace(s: &str, old: &str, new: &str) -> Result<String> {
-    Ok(s.replace(old, new))
+pub fn snake_case(input: &str) -> Result<String> {
+    Ok(input.replace("::", "_").to_lowercase())
+}
+
+pub fn sanitize_handler_name(input: &str) -> Result<String> {
+    Ok(input
+        .replace("::", "_")
+        .replace("{", "")
+        .replace("}", "")
+        .to_lowercase())
 }

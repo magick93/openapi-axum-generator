@@ -1,14 +1,20 @@
 use askama::Template;
+use crate::filters::{is_pet_id_route, snake_case, sanitize_handler_name};
+
 use openapiv3::OpenAPI;
 use serde::Serialize;
 
-mod filters;
-mod routes_translator;
+pub mod filters;
+pub mod routes;
+pub mod test_utils;
+pub mod routes_translator;
 #[cfg(test)]
 mod routes_translator_petstore_test;
 #[cfg(test)]
 mod routes_translator_test;
-mod schemas_translator;
+#[cfg(test)]
+mod routes_translator_uspto_test;
+pub mod schemas_translator;
 
 use routes_translator::RoutesTranslator;
 use schemas_translator::SchemasTranslator;
@@ -19,6 +25,22 @@ pub struct AxumTemplate<'a> {
     pub openapi: &'a OpenAPI,
     pub routes: Vec<RouteWithoutTags>,
     pub schemas: Vec<Schema>,
+    pub filters: &'a [(&'a str, &'a dyn Fn(&str) -> askama::Result<String>)],
+}
+
+impl<'a> AxumTemplate<'a> {
+    fn new(openapi: &'a OpenAPI, routes: Vec<RouteWithoutTags>, schemas: Vec<Schema>) -> Self {
+        Self {
+            openapi,
+            routes,
+            schemas,
+            filters: &[
+                ("is_pet_id_route", &is_pet_id_route),
+                ("snake_case", &snake_case),
+                ("sanitize_handler_name", &sanitize_handler_name)
+            ],
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -28,6 +50,7 @@ pub struct RouteWithoutTags {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
+    pub path_parameters: Vec<String>,
     pub responses: Vec<Response>,
     pub tag: String,
 }
@@ -45,6 +68,7 @@ pub struct Route {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
+    pub path_parameters: Vec<String>,
     pub responses: Vec<Response>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
@@ -72,6 +96,7 @@ pub struct Response {
 #[derive(Serialize, Clone)]
 pub struct Schema {
     pub name: String,
+    pub path: String,
     pub fields: Vec<SchemaField>,
 }
 
@@ -91,7 +116,6 @@ impl AxumTemplate<'_> {
         let routes = routes_translator.translate(openapi);
         let schemas = schemas_translator.translate(openapi);
         
-        // Group routes by their base path
         let mut modules = Vec::new();
         let mut module_routes = std::collections::HashMap::new();
         
@@ -109,10 +133,8 @@ impl AxumTemplate<'_> {
                 .push(route);
         }
 
-        // Generate files for each module
         let mut files = Vec::new();
         
-        // Generate handler files
         for (module, routes) in module_routes {
             let routes_without_tags = routes.into_iter().map(|route| RouteWithoutTags {
                 path: route.path,
@@ -120,21 +142,21 @@ impl AxumTemplate<'_> {
                 handler_name: route.handler_name,
                 schema: route.schema,
                 parameters: route.parameters,
+                path_parameters: route.path_parameters,
                 responses: route.responses,
                 tag: route.tags.first().cloned().unwrap_or_else(|| "Default".to_string()),
             }).collect();
             
-            let template = AxumTemplate {
+            let template = AxumTemplate::new(
                 openapi,
-                routes: routes_without_tags,
-                schemas: schemas.clone(),
-            };
+                routes_without_tags,
+                schemas.clone()
+            );
             
             let content = template.render().unwrap();
             files.push((format!("src/{}/handlers.rs", module), content));
         }
         
-        // Generate mod.rs files
         let mod_template = ModTemplate { modules };
         let mod_content = mod_template.render().unwrap();
         files.push(("src/mod.rs".to_string(), mod_content));

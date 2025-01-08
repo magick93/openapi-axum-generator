@@ -46,9 +46,29 @@ impl SchemasTranslator {
                             _ => Vec::new(),
                         };
 
+                        // Check if this schema is used in path parameters
+                        let is_path = name.to_lowercase().contains("path");
+                        let path = if is_path {
+                            // Generate path pattern based on schema fields
+                            let path_segments = fields
+                                .iter()
+                                .map(|f| format!("{{{}}}", f.name))
+                                .collect::<Vec<_>>()
+                                .join("/");
+                            Some(format!("/{}", path_segments))
+                        } else {
+                            None
+                        };
+
+                        // Generate default path if none was specified
+                        let final_path = path.unwrap_or_else(|| {
+                            format!("/{}", name.to_lowercase())
+                        });
+
                         Some(LocalSchema {
                             name: name.clone(),
                             fields,
+                            path: final_path,
                         })
                     })
                     .collect()
@@ -56,22 +76,7 @@ impl SchemasTranslator {
     }
 
     fn schema_to_string(schema: &ReferenceOr<Box<OpenApiSchema>>) -> Option<String> {
-        match schema {
-            ReferenceOr::Item(schema) => match &schema.schema_kind {
-                SchemaKind::Type(typ) => match typ {
-                    Type::String(_) => Some("String".to_string()),
-                    Type::Number(_) => Some("f64".to_string()),
-                    Type::Integer(_) => Some("i64".to_string()),
-                    Type::Boolean(_) => Some("bool".to_string()),
-                    Type::Array(arr) => arr.items.as_ref().and_then(|items| {
-                        Self::schema_to_string(items).map(|item_type| format!("Vec<{}>", item_type))
-                    }),
-                    Type::Object(_) => Some("Object".to_string()),
-                },
-                _ => Some("Unknown".to_string()),
-            },
-            ReferenceOr::Reference { reference } => Some(reference.clone()),
-        }
+        Self::schema_to_rust_type(schema)
     }
 
     fn schema_to_rust_type(schema: &ReferenceOr<Box<OpenApiSchema>>) -> Option<String> {
@@ -86,11 +91,57 @@ impl SchemasTranslator {
                         Self::schema_to_rust_type(items)
                             .map(|item_type| format!("Vec<{}>", item_type))
                     }),
-                    Type::Object(_) => Some("Object".to_string()),
+                    Type::Object(_) => Some("HashMap<String, Value>".to_string()),
                 },
-                _ => Some("Unknown".to_string()),
+                SchemaKind::OneOf { one_of } => {
+                    let types = one_of.iter()
+                        .filter_map(|s| match s {
+                            ReferenceOr::Item(schema) => Self::schema_to_rust_type(&ReferenceOr::Item(Box::new(schema.clone()))),
+                            ReferenceOr::Reference { reference } => Self::schema_to_rust_type(&ReferenceOr::Reference { reference: reference.clone() })
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" | ");
+                    Some(types)
+                }
+                SchemaKind::AllOf { all_of } => {
+                    let types = all_of.iter()
+                        .filter_map(|s| match s {
+                            ReferenceOr::Item(schema) => Self::schema_to_rust_type(&ReferenceOr::Item(Box::new(schema.clone()))),
+                            ReferenceOr::Reference { reference } => Self::schema_to_rust_type(&ReferenceOr::Reference { reference: reference.clone() })
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" & ");
+                    Some(types)
+                }
+                _ => Some("Value".to_string()),
             },
-            ReferenceOr::Reference { reference } => Some(reference.clone()),
+            ReferenceOr::Reference { reference } => {
+                // Convert OpenAPI reference to Rust type name
+                let type_name = reference
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("Unknown")
+                    .to_string();
+                Some(Self::to_pascal_case(&type_name))
+            },
         }
+    }
+
+    fn to_pascal_case(s: &str) -> String {
+        let mut result = String::new();
+        let mut capitalize_next = true;
+
+        for c in s.chars() {
+            if c == '_' || c == '-' {
+                capitalize_next = true;
+            } else if capitalize_next {
+                result.push(c.to_ascii_uppercase());
+                capitalize_next = false;
+            } else {
+                result.push(c);
+            }
+        }
+
+        result
     }
 }

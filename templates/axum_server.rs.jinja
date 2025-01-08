@@ -1,0 +1,12 @@
+use axum::{Router, Server};
+use std::net::SocketAddr;
+
+pub async fn start_server(router: Router) {
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("Server running at {}", addr);
+    
+    Server::bind(&addr)
+        .serve(router.into_make_service())
+        .await
+        .unwrap();
+}

@@ -10,16 +10,12 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn {{ route.handler_name.split("::").last().unwrap()|sanitize_handler_name }}({% if !route.parameters.is_empty() %}{% for param in route.parameters %}{% if param.required %}
-        {{ param.name }}: {% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %},
-        {% else %}
-        {{ param.name }}: Option<{% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %}>,
-        {% endif %}
-        {% endfor %}
+        {{ param.name }}: {% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %},{% else %}
+        {{ param.name }}: Option<{% if param.name == "limit" %}i32{% else %}{% if param.param_type == "Integer" %}i32{% else %}String{% endif %}{% endif %}>,{% endif %} {% endfor %}
     {% endif %}
 ) -> Result<JsonResponse<{% if route.responses[0].content_type == "application/json" %}Pet{% else %}(){% endif %}>, StatusCode> {
-    // TODO: Implement handler logic
+    // TODO: Implement {{ route.handler_name.split("::").last().unwrap()|sanitize_handler_name }} handler logic
     Ok(JsonResponse({% if route.responses[0].content_type == "application/json" %}Pet::default(){% else %}(){% endif %}))
 }
-
 {% endfor %}
 {% endblock %}

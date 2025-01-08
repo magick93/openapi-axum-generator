@@ -1,0 +1,29 @@
+{% extends "base.rs.jinja" %}
+{% block content %}
+use axum::{body::Body, http::{self, Request, StatusCode}};
+use http_body_util::BodyExt;
+use serde_json::{json, Value};
+use tower::ServiceExt;
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_{{ route.handler_name|sanitize_handler_name }}() {
+    let app = app();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("{{ route.path }}")
+                .method("{{ route.method }}")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let body: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(body, json!({ "data": "example" }));
+}
+{% endblock %}

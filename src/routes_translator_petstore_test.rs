@@ -6,17 +6,25 @@ mod tests {
     use std::process::Command;
 
     fn run_generation_test(test_data_path: &str) {
+        // Ensure gen directory exists
+        fs::create_dir_all("gen").expect("Failed to create gen directory");
+        
         // Clean up any existing generated files
         crate::TestUtils::cleanup_generated_files()
             .expect("Failed to clean up generated files");
 
         // Run the CLI command
-        let status = Command::new("cargo")
+        let output = Command::new("cargo")
             .args(["run", "--", "--input", test_data_path, "--output", "gen/"])
-            .status()
+            .output()
             .expect("Failed to run CLI command");
 
-        assert!(status.success(), "CLI command failed");
+        if !output.status.success() {
+            eprintln!("CLI command failed with status: {}", output.status);
+            eprintln!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+            eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            panic!("CLI command failed");
+        }
 
         // Verify output files were generated
         assert!(fs::metadata("gen/axum_server.rs").is_ok(), "axum_server.rs not generated");

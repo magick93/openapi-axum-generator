@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let openapi_spec: OpenAPI = from_str(&spec_str)?;
 
     // Generate files
-    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
+    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec)?;
 
     // Write all generated files
     for (file_path, content) in files {

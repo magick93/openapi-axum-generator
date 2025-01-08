@@ -4,15 +4,17 @@ use crate::filters::{is_pet_id_route, snake_case, sanitize_handler_name};
 use openapiv3::OpenAPI;
 use serde::Serialize;
 
-mod filters;
-mod routes_translator;
+pub mod filters;
+pub mod routes;
+pub mod test_utils;
+pub mod routes_translator;
 #[cfg(test)]
 mod routes_translator_petstore_test;
 #[cfg(test)]
 mod routes_translator_test;
 #[cfg(test)]
 mod routes_translator_uspto_test;
-mod schemas_translator;
+pub mod schemas_translator;
 
 use routes_translator::RoutesTranslator;
 use schemas_translator::SchemasTranslator;
@@ -48,7 +50,7 @@ pub struct RouteWithoutTags {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
-    pub path_parameters: Vec<String>, // Changed from Vec<Parameter> to Vec<String>
+    pub path_parameters: Vec<String>,
     pub responses: Vec<Response>,
     pub tag: String,
 }
@@ -66,7 +68,7 @@ pub struct Route {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
-    pub path_parameters: Vec<String>, // Changed from Vec<Parameter> to Vec<String>
+    pub path_parameters: Vec<String>,
     pub responses: Vec<Response>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
@@ -114,7 +116,6 @@ impl AxumTemplate<'_> {
         let routes = routes_translator.translate(openapi);
         let schemas = schemas_translator.translate(openapi);
         
-        // Group routes by their base path
         let mut modules = Vec::new();
         let mut module_routes = std::collections::HashMap::new();
         
@@ -132,10 +133,8 @@ impl AxumTemplate<'_> {
                 .push(route);
         }
 
-        // Generate files for each module
         let mut files = Vec::new();
         
-        // Generate handler files
         for (module, routes) in module_routes {
             let routes_without_tags = routes.into_iter().map(|route| RouteWithoutTags {
                 path: route.path,
@@ -148,7 +147,6 @@ impl AxumTemplate<'_> {
                 tag: route.tags.first().cloned().unwrap_or_else(|| "Default".to_string()),
             }).collect();
             
-            // Collect all path parameters from routes
             let template = AxumTemplate::new(
                 openapi,
                 routes_without_tags,
@@ -159,7 +157,6 @@ impl AxumTemplate<'_> {
             files.push((format!("src/{}/handlers.rs", module), content));
         }
         
-        // Generate mod.rs files
         let mod_template = ModTemplate { modules };
         let mod_content = mod_template.render().unwrap();
         files.push(("src/mod.rs".to_string(), mod_content));

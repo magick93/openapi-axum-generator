@@ -1,23 +1,6 @@
 use openapiv3::{OpenAPI, ParameterSchemaOrContent, ReferenceOr, StatusCode};
-
-use super::{Parameter as RouteParameter, Response as RouteResponse, Route};
-
-/// List of Rust keywords that need to be escaped
-const RUST_KEYWORDS: &[&str] = &[
-    "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
-    "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
-    "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
-    "while", "async", "await", "dyn",
-];
-
-/// Escape Rust keywords by prefixing with r#
-fn escape_rust_keyword(name: &str) -> String {
-    if RUST_KEYWORDS.contains(&name) {
-        format!("r#{}", name)
-    } else {
-        name.to_string()
-    }
-}
+use super::{Route, Parameter, Response, SchemaRef};
+use crate::routes::keywords::escape_rust_keyword;
 
 pub struct RoutesTranslator;
 
@@ -142,28 +125,18 @@ impl RoutesTranslator {
                                 assert_eq!(ordered_path_parameters[0], "dataset");
                                 assert_eq!(ordered_path_parameters[1], "version");
                             }
-                            
-                            // Special handling for POST /records to match USPTO spec
-                            if path.ends_with("/records") && method == "post" {
-                                ordered_path_parameters.reverse();
-                            }
-                            
-                            // Ensure DataSetList schema is properly referenced
-                            if path == "/" && method == "get" {
-                                schema_name = "DataSetList".to_string();
-                            }
                         }
 
                         Route {
                             path: path.clone(),
                             method: method.to_string().to_uppercase(),
                             handler_name,
-                            schema: super::SchemaRef { name: schema_name },
+                            schema: SchemaRef { name: schema_name },
                             parameters: operation
                                 .parameters
                                 .iter()
                                 .filter_map(|param_ref| match param_ref {
-                                    ReferenceOr::Item(param) => Some(RouteParameter {
+                                    ReferenceOr::Item(param) => Some(Parameter {
                                         name: escape_rust_keyword(&param.parameter_data_ref().name),
                                         param_type: match &param.parameter_data_ref().format {
                                             ParameterSchemaOrContent::Schema(schema_ref) => {
@@ -188,7 +161,7 @@ impl RoutesTranslator {
                                 .responses
                                 .responses
                                 .iter()
-                                .map(|(status_code, response)| RouteResponse {
+                                .map(|(status_code, response)| Response {
                                     status_code: status_code.to_string(),
                                     description: match response {
                                         ReferenceOr::Item(resp) => resp.description.clone(),

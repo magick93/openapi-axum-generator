@@ -6,14 +6,27 @@ use std::io;
 pub struct TestUtils;
 
 impl TestUtils {
-    /// Clean up generated files in the gen/ directory
+    /// Clean up generated files in the gen/ directory with retries
     pub fn cleanup_generated_files() -> io::Result<()> {
         let gen_path = Path::new("gen");
         
         if gen_path.exists() {
-            fs::remove_dir_all(gen_path)?;
+            // Try multiple times in case of filesystem delays
+            let mut attempts = 3;
+            while attempts > 0 {
+                match fs::remove_dir_all(gen_path) {
+                    Ok(_) => break,
+                    Err(e) if attempts == 1 => return Err(e),
+                    Err(_) => {
+                        attempts -= 1;
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                    }
+                }
+            }
         }
         
+        // Recreate empty directory
+        fs::create_dir_all(gen_path)?;
         Ok(())
     }
 
@@ -43,8 +56,9 @@ mod tests {
         // Clean up
         TestUtils::cleanup_generated_files()?;
 
-        // Verify cleanup
-        assert!(!Path::new("gen").exists());
+        // Verify cleanup and recreation
+        assert!(Path::new("gen").exists());
+        assert!(fs::read_dir("gen")?.next().is_none()); // Should be empty
         Ok(())
     }
 

@@ -1,7 +1,15 @@
 use clap::{Arg, Command};
 use openapiv3::OpenAPI;
 use serde_json::from_str;
-use std::{fs, path::Path};
+use std::{fs, path::Path, io};
+
+/// Helper function to write content to a file, creating parent directories if needed
+fn write_file_with_path(path: &Path, content: &str) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, content)
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = Command::new("openapi-axum-generator")
@@ -42,13 +50,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate files
     let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
-    // Write all generated files
+    // Write all generated files using helper function
     for (file_path, content) in files {
         let full_path = Path::new(output_dir).join(file_path);
-        if let Some(parent) = full_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(full_path, content)?;
+        write_file_with_path(&full_path, &content)?;
     }
 
     println!("Successfully generated Axum server code in {}", output_dir);

@@ -46,9 +46,29 @@ impl SchemasTranslator {
                             _ => Vec::new(),
                         };
 
+                        // Check if this schema is used in path parameters
+                        let is_path = name.to_lowercase().contains("path");
+                        let path = if is_path {
+                            // Generate path pattern based on schema fields
+                            let path_segments = fields
+                                .iter()
+                                .map(|f| format!("{{{}}}", f.name))
+                                .collect::<Vec<_>>()
+                                .join("/");
+                            Some(format!("/{}", path_segments))
+                        } else {
+                            None
+                        };
+
+                        // Generate default path if none was specified
+                        let final_path = path.unwrap_or_else(|| {
+                            format!("/{}", name.to_lowercase())
+                        });
+
                         Some(LocalSchema {
                             name: name.clone(),
                             fields,
+                            path: final_path,
                         })
                     })
                     .collect()

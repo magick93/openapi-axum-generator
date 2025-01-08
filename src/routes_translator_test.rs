@@ -166,3 +166,49 @@ fn test_translate_route_with_responses() {
     assert_eq!(not_found_response.status_code, "404");
     assert_eq!(not_found_response.description, "Not Found");
 }
+
+#[test]
+fn test_translate_route_with_reserved_keyword_parameter() {
+    let mut openapi = create_test_openapi();
+    openapi.paths.paths.insert(
+        "/test/{type}".to_string(),
+        ReferenceOr::Item(PathItem {
+            get: Some(Operation {
+                operation_id: Some("testOperation".to_string()),
+                parameters: vec![ReferenceOr::Item(Parameter::Query {
+                    parameter_data: ParameterData {
+                        name: "type".to_string(),
+                        description: None,
+                        required: true,
+                        deprecated: Some(false),
+                        format: ParameterSchemaOrContent::Schema(ReferenceOr::Item(Schema {
+                            schema_kind: SchemaKind::Type(Type::String(Default::default())),
+                            schema_data: Default::default(),
+                        })),
+                        example: None,
+                        examples: Default::default(),
+                        explode: Some(false),
+                        extensions: Default::default(),
+                    },
+                    allow_empty_value: Some(false),
+                    style: openapiv3::QueryStyle::Form,
+                    allow_reserved: false,
+                })],
+                responses: Default::default(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+    );
+
+    let translator = RoutesTranslator::new();
+    let routes = translator.translate(&openapi);
+
+    assert_eq!(routes.len(), 1);
+    let route = &routes[0];
+    assert_eq!(route.parameters.len(), 1);
+    let param = &route.parameters[0];
+    assert_eq!(param.name, "r#type"); // Expect escaped keyword
+    assert_eq!(param.param_type, "Type(String(StringType { format: Empty, pattern: None, enumeration: [], min_length: None, max_length: None }))");
+    assert!(param.required);
+}

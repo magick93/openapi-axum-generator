@@ -2,6 +2,23 @@ use openapiv3::{OpenAPI, ParameterSchemaOrContent, ReferenceOr};
 
 use super::{Parameter as RouteParameter, Response as RouteResponse, Route};
 
+/// List of Rust keywords that need to be escaped
+const RUST_KEYWORDS: &[&str] = &[
+    "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
+    "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
+    "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
+    "while", "async", "await", "dyn",
+];
+
+/// Escape Rust keywords by prefixing with r#
+fn escape_rust_keyword(name: &str) -> String {
+    if RUST_KEYWORDS.contains(&name) {
+        format!("r#{}", name)
+    } else {
+        name.to_string()
+    }
+}
+
 pub struct RoutesTranslator;
 
 impl RoutesTranslator {
@@ -57,21 +74,36 @@ impl RoutesTranslator {
                             })
                             .unwrap_or_else(|| "DefaultSchema".to_string());
 
+                        // Extract path parameters from the path string
+                        let path_parameters: Vec<String> = path
+                            .split('/')
+                            .filter(|segment| segment.starts_with('{') && segment.ends_with('}'))
+                            .map(|segment| {
+                                let param_name = segment.trim_matches(|c| c == '{' || c == '}');
+                                escape_rust_keyword(param_name)
+                            })
+                            .collect();
+
+                        // Generate handler name
+                        let handler_name = format!(
+                            "handle_{}_{}",
+                            method,
+                            path.replace('/', "_")
+                                .replace("{petId}", "petid")
+                                .trim_matches('_')
+                        );
+
                         Route {
                             path: path.clone(),
                             method: method.to_string().to_uppercase(),
-                            handler_name: format!(
-                                "handle_{}_{}",
-                                method,
-                                path.replace('/', "_").trim_matches('_')
-                            ),
+                            handler_name,
                             schema: super::SchemaRef { name: schema_name },
                             parameters: operation
                                 .parameters
                                 .iter()
                                 .filter_map(|param_ref| match param_ref {
                                     ReferenceOr::Item(param) => Some(RouteParameter {
-                                        name: param.parameter_data_ref().name.clone(),
+                                        name: escape_rust_keyword(&param.parameter_data_ref().name),
                                         param_type: match &param.parameter_data_ref().format {
                                             ParameterSchemaOrContent::Schema(schema_ref) => {
                                                 match schema_ref {
@@ -90,6 +122,7 @@ impl RoutesTranslator {
                                     _ => None,
                                 })
                                 .collect(),
+                            path_parameters,
                             responses: operation
                                 .responses
                                 .responses

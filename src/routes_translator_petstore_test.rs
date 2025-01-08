@@ -3,6 +3,23 @@ mod tests {
     use crate::routes_translator::RoutesTranslator;
     use openapiv3::OpenAPI;
     use std::fs;
+    use std::process::Command;
+
+    #[test]
+    fn test_cli_generation() {
+        // Run the CLI command
+        let status = Command::new("cargo")
+            .args(["run", "--", "--input", "./src/test_data/petstore.json", "--output", "gen/"])
+            .status()
+            .expect("Failed to run CLI command");
+
+        assert!(status.success(), "CLI command failed");
+
+        // Verify output files were generated
+        assert!(fs::metadata("gen/axum_server.rs").is_ok(), "axum_server.rs not generated");
+        assert!(fs::metadata("gen/src/api/handlers.rs").is_ok(), "handlers.rs not generated");
+        assert!(fs::metadata("gen/src/pets/handlers.rs").is_ok(), "pets/handlers.rs not generated");
+    }
 
     #[test]
     fn test_translate_petstore_routes() {

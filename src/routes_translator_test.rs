@@ -1,4 +1,4 @@
-use super::routes_translator::RoutesTranslator;
+use super::routes::translator::RoutesTranslator;
 use openapiv3::{
     Components, OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathItem,
     ReferenceOr, Response, Schema, SchemaKind, StatusCode, Type,

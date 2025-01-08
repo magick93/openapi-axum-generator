@@ -1,3 +1,5 @@
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9,8 +11,8 @@ mod tests {
     use serde_json::{json, Value};
     use tower::ServiceExt;
 
-    #[tokio::test]
-    async fn test_example_endpoint() {
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_example_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         let app = app();
 
         let response = app

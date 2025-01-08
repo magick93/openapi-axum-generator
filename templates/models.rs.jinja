@@ -3,10 +3,12 @@
 {% block content %}
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
+use axum_extra::routing::TypedPath;
 
 {% for schema in schemas %}
 /// {{ schema.name }} model
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, TypedPath)]
+#[typed_path("{{ schema.path }}")]
 pub struct {{ schema.name }} {
     {% for field in schema.fields %}
     /// {{ field.name }} field

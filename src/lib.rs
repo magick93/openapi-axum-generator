@@ -1,4 +1,6 @@
 use askama::Template;
+use crate::filters::{is_pet_id_route, snake_case, sanitize_handler_name};
+
 use openapiv3::OpenAPI;
 use serde::Serialize;
 
@@ -8,6 +10,8 @@ mod routes_translator;
 mod routes_translator_petstore_test;
 #[cfg(test)]
 mod routes_translator_test;
+#[cfg(test)]
+mod routes_translator_uspto_test;
 mod schemas_translator;
 
 use routes_translator::RoutesTranslator;
@@ -19,6 +23,22 @@ pub struct AxumTemplate<'a> {
     pub openapi: &'a OpenAPI,
     pub routes: Vec<RouteWithoutTags>,
     pub schemas: Vec<Schema>,
+    pub filters: &'a [(&'a str, &'a dyn Fn(&str) -> askama::Result<String>)],
+}
+
+impl<'a> AxumTemplate<'a> {
+    fn new(openapi: &'a OpenAPI, routes: Vec<RouteWithoutTags>, schemas: Vec<Schema>) -> Self {
+        Self {
+            openapi,
+            routes,
+            schemas,
+            filters: &[
+                ("is_pet_id_route", &is_pet_id_route),
+                ("snake_case", &snake_case),
+                ("sanitize_handler_name", &sanitize_handler_name)
+            ],
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -28,6 +48,7 @@ pub struct RouteWithoutTags {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
+    pub path_parameters: Vec<String>, // Changed from Vec<Parameter> to Vec<String>
     pub responses: Vec<Response>,
     pub tag: String,
 }
@@ -45,6 +66,7 @@ pub struct Route {
     pub handler_name: String,
     pub schema: SchemaRef,
     pub parameters: Vec<Parameter>,
+    pub path_parameters: Vec<String>, // Changed from Vec<Parameter> to Vec<String>
     pub responses: Vec<Response>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
@@ -72,6 +94,7 @@ pub struct Response {
 #[derive(Serialize, Clone)]
 pub struct Schema {
     pub name: String,
+    pub path: String,
     pub fields: Vec<SchemaField>,
 }
 
@@ -120,15 +143,17 @@ impl AxumTemplate<'_> {
                 handler_name: route.handler_name,
                 schema: route.schema,
                 parameters: route.parameters,
+                path_parameters: route.path_parameters,
                 responses: route.responses,
                 tag: route.tags.first().cloned().unwrap_or_else(|| "Default".to_string()),
             }).collect();
             
-            let template = AxumTemplate {
+            // Collect all path parameters from routes
+            let template = AxumTemplate::new(
                 openapi,
-                routes: routes_without_tags,
-                schemas: schemas.clone(),
-            };
+                routes_without_tags,
+                schemas.clone()
+            );
             
             let content = template.render().unwrap();
             files.push((format!("src/{}/handlers.rs", module), content));

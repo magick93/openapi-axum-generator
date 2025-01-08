@@ -17,6 +17,5 @@ pub async fn {{ route.handler_name.split("::").last().unwrap()|sanitize_handler_
     // TODO: Implement {{ route.handler_name.split("::").last().unwrap()|sanitize_handler_name }} handler logic
     Ok(JsonResponse({% if route.responses[0].content_type == "application/json" %}Pet::default(){% else %}(){% endif %}))
 }
-
 {% endfor %}
 {% endblock %}

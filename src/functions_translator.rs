@@ -1,4 +1,4 @@
-use openapiv3::{OpenAPI, ReferenceOr, Schema, StatusCode};
+use openapiv3::{OpenAPI, PathItem, ReferenceOr, Schema, StatusCode};
 
 
 
@@ -42,6 +42,8 @@ pub struct FunctionSignature {
 
     /// The Rust return type of the function (e.g. "Json<Vec<Todo>>").
     pub return_type: Option<String>,
+
+    pub folder: String,
 }
 
 /// Describes a parameter that appears in a function signature (path, query, etc.).
@@ -104,6 +106,7 @@ impl FunctionSignature {
             request_body: None,
             responses: Vec::new(),
             return_type: None,
+            folder: "default".to_string(),
         }
     }
 
@@ -123,6 +126,7 @@ impl FunctionSignature {
         }
 
         for (path, path_item) in openapi.paths.iter() {
+            
             if let ReferenceOr::Item(path_item) = path_item {
                 let operations = [
                     ("GET", &path_item.get),
@@ -131,6 +135,8 @@ impl FunctionSignature {
                     ("PATCH", &path_item.patch),
                     ("DELETE", &path_item.delete),
                 ];
+
+                // self.folder = path_item.
 
                 for (method, operation_option) in operations {
                     if let Some(operation) = operation_option {
@@ -146,6 +152,15 @@ impl FunctionSignature {
                                 format!("{}_{}", method.to_lowercase(), path_name)
                             }
                         });
+
+                        // Set folder to the first tag if available, else default, excluding "v4"
+                        func_sig.folder = operation.tags.first()
+                            .unwrap_or(&"default".to_string())
+                            .replace("v4", "")
+                            .replace("__", "_") // Clean up double underscores from v4 removal
+                            .trim_matches('_') // Clean up leading/trailing underscores
+                            .to_string();
+
 
                         if let Some(description) = &operation.description {
                             // Format doc comment with proper line breaks

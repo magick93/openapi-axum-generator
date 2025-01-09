@@ -1,3 +1,5 @@
+use openapiv3::OpenAPI;
+
 /// Describes a single function signature to be generated.
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
@@ -85,4 +87,28 @@ pub struct ResponseSignature {
 
     /// The Rust type returned for this response (e.g. "[Todo]" or "ErrorMessage").
     pub rust_type: Option<String>,
+}
+
+impl FunctionSignature {
+    /// Creates a new function signature with the given name and path.
+    pub fn new() -> Self {
+        Self {
+            doc_comment: None,
+            fn_name: String::new(),
+            is_async: false,
+            http_method: "GET".to_string(),
+            path: String::new(),
+            tag: None,
+            summary: None,
+            params: Vec::new(),
+            request_body: None,
+            responses: Vec::new(),
+            return_type: None,
+        }
+    }
+    pub fn translate(&self, openapi: &OpenAPI) -> Vec<FunctionSignature> {
+        let routes_translator = FunctionSignature::new();
+
+        vec![routes_translator]
+    }
 }

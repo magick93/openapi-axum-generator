@@ -48,13 +48,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let openapi_spec: OpenAPI = from_str(&spec_str)?;
 
     // Generate files
-    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec)?;
+    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
     // Write all generated files using helper function
-    for (file_path, content) in files {
-        let full_path = Path::new(output_dir).join(file_path);
-        write_file_with_path(&full_path, &content)?;
-    }
+    // for (file_path, content) in files.into_iter() {
+    //     let full_path = Path::new(output_dir).join(file_path);
+    //     write_file_with_path(&full_path, &content)?;
+    // }
 
     println!("Successfully generated Axum server code in {}", output_dir);
     Ok(())

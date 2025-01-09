@@ -8,6 +8,8 @@ mod tests {
     ResponseSignature
 };
     use crate::file_utils;
+    use openapiv3::ReferenceOr;
+    use std::fmt::Debug;
     use std::path::PathBuf;
 
     fn init() {
@@ -134,5 +136,91 @@ mod tests {
         let path = PathBuf::from("src/test_data/invalid.json");
         let result = file_utils::openapi_from_file(&path);
         assert!(result.is_err());
+    }
+
+    // #[test]
+    // fn test_v4_exclusion_in_path() {
+    //     init();
+        
+    //     // Test v4 at start of path
+    //     let mut sig1 = FunctionSignature::new();
+    //     sig1.path = "/v4/test".to_string();
+    //     let result1 = sig1.translate(&file_utils::create_minimal_openapi());
+    //     assert_eq!(result1[0].path, "/test");
+
+    //     // Test v4 in middle of path
+    //     let mut sig2 = FunctionSignature::new();
+    //     sig2.path = "/api/v4/test".to_string();
+    //     let result2 = sig2.translate(&file_utils::create_minimal_openapi());
+    //     assert_eq!(result2[0].path, "/api/test");
+
+    //     // Test v4 at end of path
+    //     let mut sig3 = FunctionSignature::new();
+    //     sig3.path = "/test/v4".to_string();
+    //     let result3 = sig3.translate(&file_utils::create_minimal_openapi());
+    //     assert_eq!(result3[0].path, "/test");
+
+    //     // Test multiple v4 occurrences
+    //     let mut sig4 = FunctionSignature::new();
+    //     sig4.path = "/v4/api/v4/test/v4".to_string();
+    //     let result4 = sig4.translate(&file_utils::create_minimal_openapi());
+    //     assert_eq!(result4[0].path, "/api/test");
+
+    //     // Test path without v4 remains unchanged
+    //     let mut sig5 = FunctionSignature::new();
+    //     sig5.path = "/api/test".to_string();
+    //     let result5 = sig5.translate(&file_utils::create_minimal_openapi());
+    //     assert_eq!(result5[0].path, "/api/test");
+    // }
+
+    #[test]
+    fn test_v4_exclusion_in_folder() {
+        init();
+        
+        // Test v4 at start of folder name
+        let mut sig1 = FunctionSignature::new();
+        sig1.folder = "v4_test".to_string();
+
+
+        let min_openapi = file_utils::create_minimal_openapi();
+        
+        //TODO - get tags from openapi and log. So we can check we are settting test data correctly
+        // Get and verify tags from the minimal openapi spec
+        let path_item = min_openapi.paths.paths.first().unwrap().1;
+        if let ReferenceOr::Item(path_item) = path_item {
+            if let Some(get_op) = &path_item.get {
+                log::debug!("Operation Tags: {:?}", get_op.tags);
+                assert!(!get_op.tags.is_empty(), "Tags should be set in minimal openapi spec");
+                assert_eq!(get_op.tags[0], "v4", "First tag should be 'v4'");
+            }
+        }
+
+        let result1 = sig1.translate(&min_openapi);
+        log::debug!("Result1: {:?}", result1[0].folder);
+        assert_eq!(result1[0].folder, "test");
+
+        // Test v4 in middle of folder name
+        let mut sig2 = FunctionSignature::new();
+        sig2.folder = "api_v4_test".to_string();
+        let result2 = sig2.translate(&file_utils::create_minimal_openapi());
+        assert_eq!(result2[0].folder, "api_test");
+
+        // Test v4 at end of folder name
+        let mut sig3 = FunctionSignature::new();
+        sig3.folder = "test_v4".to_string();
+        let result3 = sig3.translate(&file_utils::create_minimal_openapi());
+        assert_eq!(result3[0].folder, "test");
+
+        // Test multiple v4 occurrences
+        let mut sig4 = FunctionSignature::new();
+        sig4.folder = "v4_api_v4_test_v4".to_string();
+        let result4 = sig4.translate(&file_utils::create_minimal_openapi());
+        assert_eq!(result4[0].folder, "api_test");
+
+        // Test folder without v4 remains unchanged
+        let mut sig5 = FunctionSignature::new();
+        sig5.folder = "api_test".to_string();
+        let result5 = sig5.translate(&file_utils::create_minimal_openapi());
+        assert_eq!(result5[0].folder, "api_test");
     }
 }

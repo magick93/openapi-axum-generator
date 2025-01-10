@@ -8,6 +8,16 @@ pub fn is_pet_id_route(path: &str) -> Result<String> {
     }
 }
 
+pub fn display_some<T>(value: &Option<T>) -> askama::Result<String>
+where
+    T: std::fmt::Display,
+{
+    Ok(match value {
+        Some(value) => value.to_string(),
+        None => String::new(),
+    })
+}
+
 pub fn snake_case(input: &str) -> Result<String> {
     Ok(input.replace("::", "_").to_lowercase())
 }

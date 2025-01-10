@@ -4,13 +4,33 @@ use axum::{ extract::{Path, Query, Json}, response::Json as JsonResponse, http::
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 
+{% for folder in folders %}
+mod {{ folder|sanitize_handler_name }};
+{%- endfor %}
+
+
 {% for fn_sig in functions %}
 #[utoipa::path(
     {{ fn_sig.http_method }}, 
     path = "{{ fn_sig.path }}",  
     tag = "{{ fn_sig.tag }}",
-    
-
+    {% if fn_sig.params.len() > 0 %}
+    params(
+        {%- for param in fn_sig.params %}
+        ("{{ param.name }}" = {{ param.rust_type }}{% if param.description.is_some() %}, description = "{{ param.description.as_ref().unwrap() }}"{% endif %})
+        {%- endfor %}
+    ),
+    {% endif %}
+    responses(
+        {% for response in fn_sig.responses %}
+        (status = {{ response.status }}, 
+        {% if response.description.is_some() %}description = "{{ response.description.as_ref().unwrap() }}"{% endif %}
+        {% if response.rust_type.is_some() %}body = "{{ response.rust_type.as_ref().unwrap() }}"{% endif %}
+         
+         
+        )
+        {%- endfor %}
+    )
 )]
 
 {% endfor %}

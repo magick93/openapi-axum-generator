@@ -3,6 +3,12 @@ use openapiv3::{OpenAPI, ReferenceOr, Schema as OpenApiSchema, SchemaKind, Type}
 
 pub struct SchemasTranslator;
 
+impl Default for SchemasTranslator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchemasTranslator {
     pub fn new() -> Self {
         Self

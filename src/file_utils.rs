@@ -47,8 +47,8 @@ pub fn create_minimal_openapi() -> OpenAPI {
                 "/test".to_string(),
                 openapiv3::ReferenceOr::Item(openapiv3::PathItem {
                     get: Some(openapiv3::Operation {
-                        tags: vec!["v4".to_string(),"test".to_string(), "sample".to_string(), "api".to_string()],
-                        operation_id: Some("test".to_string()),
+                        tags: vec!["v4".to_string(),"tag_test".to_string(), "sample".to_string(), "api".to_string()],
+                        operation_id: Some("get_api_v4_{network}_validators_validatorsByClusterHash_{clusterHash}".to_string()),
                         responses: {
                             let mut responses = openapiv3::Responses::default();
                             responses.responses.insert(

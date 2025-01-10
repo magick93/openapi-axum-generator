@@ -22,9 +22,11 @@ mod tests {
 
     #[test]
     fn test_function_signature_creation() {
+        init();
         let sig = FunctionSignature::new();
         assert_eq!(sig.fn_name, "");
-        assert_eq!(sig.http_method, "GET");
+        log::debug!("Function Signature: {:?}", sig.fn_name);
+        assert_eq!(sig.http_method, "");
         assert!(sig.params.is_empty());
         assert!(sig.responses.is_empty());
     }
@@ -90,7 +92,7 @@ mod tests {
         
         assert_eq!(result.len(), 1);
         let translated = &result[0];
-        assert_eq!(translated.fn_name, "get");
+        assert_eq!(translated.fn_name, "get_network_validators_validators_by_cluster_hash_cluster_hash");
     }
 
     #[test]
@@ -176,6 +178,7 @@ mod tests {
             ("search_controller_search", "search_controller"),
             ("get_api_v4", "get"),
             ("get_api", "get"),
+            ("get_get", "get"),
             ("get", "get"),
             ("", ""),
         ];

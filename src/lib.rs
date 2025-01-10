@@ -129,7 +129,7 @@ impl AxumTemplate<'_> {
 
         let mut modules = Vec::new();
         let mut module_routes = std::collections::HashMap::new();
-        let mut function_signatures = functions_translator.translate(openapi);
+        
 
         for route in routes {
             let path_parts: Vec<&str> = route.path.split('/').filter(|s| !s.is_empty()).collect();

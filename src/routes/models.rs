@@ -1,4 +1,3 @@
-use openapiv3::ReferenceOr;
 use serde::Serialize;
 
 /// Represents a route parameter

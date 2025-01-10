@@ -148,10 +148,7 @@ impl RoutesTranslator {
                                 ordered_path_parameters.reverse();
                             }
                             
-                            // Ensure DataSetList schema is properly referenced
-                            if path == "/" && method == "get" {
-                                schema_name = "DataSetList".to_string();
-                            }
+                           
                         }
 
                         Route {

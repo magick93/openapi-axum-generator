@@ -1,9 +1,6 @@
-use openapiv3::{OpenAPI, ReferenceOr, Schema, StatusCode};
 use heck::ToSnakeCase;
+use openapiv3::{OpenAPI, ReferenceOr, Schema, StatusCode};
 use serde::Serialize;
-
-
-
 
 /// Describes a single function signature to be generated.
 #[derive(Debug, Clone, Serialize)]
@@ -103,7 +100,7 @@ impl FunctionSignature {
     /// "get_api_v4_network_validators_validatorsByClusterHash_clusterHash" -> "get_network_validators_validators_by_cluster_hash"
     fn to_snake_case(input: &str) -> String {
         let mut result = input.to_snake_case();
-        
+
         // Remove any "api_v4_" prefix
         if result.contains("api_v4_") {
             result = result.replace("api_v4_", "")
@@ -116,36 +113,33 @@ impl FunctionSignature {
 
         // Remove any "api"
         // if result.contains("api") {
-            result = result.replace("api", "");
+        result = result.replace("api", "");
         // }
 
         // if there is a double underscore, remove one
         if result.contains("__") {
             result = result.replace("__", "_")
         }
-        
 
         // Remove any underscores at the start or end of the string
-        result.starts_with("_").then(|| result = result[1..].to_string());        
-        result.ends_with("_").then(|| result = result[..result.len()-1].to_string());
+        result
+            .starts_with("_")
+            .then(|| result = result[1..].to_string());
+        result
+            .ends_with("_")
+            .then(|| result = result[..result.len() - 1].to_string());
 
         //replace any "post" prefix with "create"
-        result.starts_with("post_").then(|| result = result.replace("post_", "create_")); 
+        result
+            .starts_with("post_")
+            .then(|| result = result.replace("post_", "create_"));
 
         // if starts with "search_" and ends with "_search" remove the "_search" part
         if result.starts_with("search_") && result.ends_with("_search") {
             result = result.replace("_search", "")
         }
-        // Add "get_" prefix if the name doesn't start with a known verb
-        else if !result.starts_with("get_") && 
-                !result.starts_with("create_") && 
-                !result.starts_with("update_") && 
-                !result.starts_with("delete_") && 
-                !result.starts_with("search_") {
-            result = format!("get_{}", result);
-        }
 
-
+        result = result.replace("get_get", "get");
 
         result
     }
@@ -183,7 +177,6 @@ impl FunctionSignature {
         }
 
         for (path, path_item) in openapi.paths.iter() {
-            
             if let ReferenceOr::Item(path_item) = path_item {
                 let operations = [
                     ("GET", &path_item.get),
@@ -213,15 +206,17 @@ impl FunctionSignature {
                         func_sig.fn_name = FunctionSignature::to_snake_case(&func_sig.fn_name);
 
                         // Set folder to first non-v4 tag if available, else default
-                        func_sig.folder = operation.tags.iter()
+                        func_sig.folder = operation
+                            .tags
+                            .iter()
                             .find(|&tag| tag != "v4")
                             .map(|tag| tag.to_string())
                             .unwrap_or_else(|| "default".to_string());
 
-
                         if let Some(description) = &operation.description {
                             // Format doc comment with proper line breaks
-                            let formatted_doc = description.lines()
+                            let formatted_doc = description
+                                .lines()
                                 .map(|line| format!("/// {}", line))
                                 .collect::<Vec<_>>()
                                 .join("\n");
@@ -247,28 +242,40 @@ impl FunctionSignature {
                                     rust_type: match param {
                                         openapiv3::Parameter::Query { parameter_data, .. } => {
                                             match &parameter_data.format {
-                                                openapiv3::ParameterSchemaOrContent::Schema(s) => schema_to_rust_type(s),
+                                                openapiv3::ParameterSchemaOrContent::Schema(s) => {
+                                                    schema_to_rust_type(s)
+                                                }
                                                 _ => "String".to_string(),
                                             }
                                         }
                                         openapiv3::Parameter::Path { parameter_data, .. } => {
                                             match &parameter_data.format {
-                                                openapiv3::ParameterSchemaOrContent::Schema(s) => schema_to_rust_type(s),
+                                                openapiv3::ParameterSchemaOrContent::Schema(s) => {
+                                                    schema_to_rust_type(s)
+                                                }
                                                 _ => "String".to_string(),
                                             }
                                         }
                                         openapiv3::Parameter::Header { parameter_data, .. } => {
                                             match &parameter_data.format {
-                                                openapiv3::ParameterSchemaOrContent::Schema(s) => schema_to_rust_type(s),
+                                                openapiv3::ParameterSchemaOrContent::Schema(s) => {
+                                                    schema_to_rust_type(s)
+                                                }
                                                 _ => "String".to_string(),
                                             }
                                         }
                                         _ => "String".to_string(),
                                     },
                                     location: match param {
-                                        openapiv3::Parameter::Query { .. } => ParameterLocation::Query,
-                                        openapiv3::Parameter::Path { .. } => ParameterLocation::Path,
-                                        openapiv3::Parameter::Header { .. } => ParameterLocation::Header,
+                                        openapiv3::Parameter::Query { .. } => {
+                                            ParameterLocation::Query
+                                        }
+                                        openapiv3::Parameter::Path { .. } => {
+                                            ParameterLocation::Path
+                                        }
+                                        openapiv3::Parameter::Header { .. } => {
+                                            ParameterLocation::Header
+                                        }
                                         _ => ParameterLocation::Query,
                                     },
                                     description: param_data.description.clone(),
@@ -326,7 +333,9 @@ fn schema_to_rust_type(schema: &ReferenceOr<Schema>) -> String {
             openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => "bool".to_string(),
             openapiv3::SchemaKind::Type(openapiv3::Type::Array(array)) => {
                 let item_type = match array.items.as_ref() {
-                    Some(ReferenceOr::Item(s)) => schema_to_rust_type(&ReferenceOr::Item(*s.clone())),
+                    Some(ReferenceOr::Item(s)) => {
+                        schema_to_rust_type(&ReferenceOr::Item(*s.clone()))
+                    }
                     _ => "serde_json::Value".to_string(),
                 };
                 format!("Vec<{}>", item_type)

@@ -17,6 +17,7 @@ fn write_file_with_path(path: &Path, content: &str) -> io::Result<()> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    init();
     let matches = Command::new("openapi-axum-generator")
         .version("0.1.0")
         .about("Generates Axum server code from OpenAPI specification")
@@ -45,6 +46,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_one::<String>("output")
         .expect("output is required");
 
+    // log the input and output
+    log::debug!("### Input file: {:?}", input_file);
+    
     // Create output directory
     fs::create_dir_all(output_dir)?;
 
@@ -55,13 +59,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
     // Write all generated files using helper function
-    // for (file_path, content) in files.into_iter() {
-    //     let full_path = Path::new(output_dir).join(file_path);
-    //     write_file_with_path(&full_path, &content)?;
-    // }
+    for (file_path, content) in files.into_iter() {
+        let full_path = Path::new(output_dir).join(file_path);
+        write_file_with_path(&full_path, &content)?;
+    }
 
     println!("Successfully generated Axum server code in {}", output_dir);
     Ok(())
 }
 
 
+fn init() {
+        let _ = env_logger::builder()
+            .target(env_logger::Target::Stdout)
+            .filter_level(log::LevelFilter::Trace)
+            .is_test(true)
+            .try_init();
+    }

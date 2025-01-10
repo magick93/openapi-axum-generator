@@ -1,11 +1,10 @@
-use crate::filters::{is_pet_id_route, sanitize_handler_name, snake_case};
 use askama::Template;
 
 use openapiv3::OpenAPI;
 use serde::Serialize;
 
-pub mod filters;
 pub mod file_utils;
+pub mod filters;
 pub mod functions_translator;
 pub mod routes;
 pub mod routes_translator;
@@ -18,7 +17,7 @@ mod routes_translator_uspto_test;
 pub mod schemas_translator;
 pub mod test_utils;
 
-use functions_translator::{FunctionSignature};
+use functions_translator::FunctionSignature;
 use routes_translator::RoutesTranslator;
 use schemas_translator::SchemasTranslator;
 
@@ -28,8 +27,8 @@ pub struct AxumTemplate<'a> {
     pub openapi: &'a OpenAPI,
     pub routes: Vec<RouteWithoutTags>,
     pub functions: Vec<FunctionSignature>,
+    pub folders: std::collections::HashSet<String>,
     pub schemas: Vec<Schema>,
-    pub filters: &'a [(&'a str, &'a dyn Fn(&str) -> askama::Result<String>)],
 }
 
 impl<'a> AxumTemplate<'a> {
@@ -44,11 +43,7 @@ impl<'a> AxumTemplate<'a> {
             routes,
             schemas,
             functions,
-            filters: &[
-                ("is_pet_id_route", &is_pet_id_route),
-                ("snake_case", &snake_case),
-                ("sanitize_handler_name", &sanitize_handler_name),
-            ],
+            folders: std::collections::HashSet::new(),
         }
     }
 }
@@ -166,12 +161,24 @@ impl AxumTemplate<'_> {
                 })
                 .collect();
 
-            let template = AxumTemplate::new(
+            let functions = functions_translator.translate(openapi);
+
+            let mut folders = std::collections::HashSet::new();
+
+            for function in &functions {
+                folders.insert(function.folder.clone());
+            }
+
+
+            let mut template = AxumTemplate::new(
                 openapi,
                 routes_without_tags,
                 schemas.clone(),
-                functions_translator.translate(openapi),
+                functions,
+                
             );
+
+            template.folders = folders;
 
             let content = template.render().unwrap();
             files.push((format!("src/{}/handlers.rs", module), content));

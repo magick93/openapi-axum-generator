@@ -1,5 +1,5 @@
 use askama::Template;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 
 use openapiv3::OpenAPI;
 use serde::Serialize;
@@ -115,7 +115,7 @@ pub struct SchemaField {
 }
 
 impl AxumTemplate<'_> {
-    pub fn from_openapi<'a>(openapi: &'a OpenAPI) -> Vec<(String, String)> {
+    pub fn from_openapi(openapi: &OpenAPI) -> Vec<(String, String)> {
         info!("Starting OpenAPI translation");
         let routes_translator = RoutesTranslator::new();
         let schemas_translator = SchemasTranslator::new();

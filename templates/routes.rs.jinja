@@ -9,7 +9,7 @@ use super::handlers::*;
 
 pub fn create_router() -> Router {
     Router::new()
-    {% for route in routes %}.route("{{ route.path }}", {{ route.method|lower }}({{ route.handler_name|sanitize_handler_name }}))
+    {% for route in functions %}.route("{{ route.path }}", {{ route.fn_name}}())
     {% endfor %}
 }
 {% endblock %}

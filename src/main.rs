@@ -1,10 +1,9 @@
 use clap::{Arg, Command};
-use openapiv3::OpenAPI;
-use serde_json::from_str;
-use std::{fs, io, path::Path, error::Error};
+
+use std::{fs, io, path::Path};
 
 mod file_utils;
-mod functions_translator;
+
 
 use crate::file_utils::openapi_from_file;
 

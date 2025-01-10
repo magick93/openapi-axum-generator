@@ -1,0 +1,55 @@
+# clippy.toml
+#
+# A "good first" Clippy config for a Rust project, not too strict or noisy.
+# For details on Clippy configuration:
+# https://github.com/rust-lang/rust-clippy/blob/master/README.md
+
+# -----------------------------
+# GLOBAL LINT LEVEL SETTINGS
+# -----------------------------
+# You can set a default level for lints such as:
+#   "clippy::all", "clippy::pedantic", "clippy::nursery", etc.
+# Values can be "allow", "warn", or "deny".
+
+# clippy::all covers many well-established lints that catch bugs and anti-patterns.
+# clippy::nursery covers newer, somewhat experimental lints, but they can still be quite helpful.
+# (Note: If this is too noisy, remove "nursery" or set it to "allow".)
+warn = [
+    "clippy::all",
+    "clippy::nursery",
+]
+
+# clippy::pedantic is often too chatty and opinionated for a first pass,
+# so we don't enable it globally. You can selectively enable it for
+# specific lints in the "cfg_if" section below if needed.
+# warn = [ "clippy::pedantic" ] # <-- Optionally enable if you want to be more strict.
+
+# -----------------------------
+# SELECTIVE ALLOW LIST
+# -----------------------------
+# Some lints in "clippy::all" or "clippy::nursery" can be overly strict or
+# generate too many false positives for typical codebases. 
+# You can `allow` them here to silence them.
+
+allow = [
+    # Often you don’t need private docs for small prototypes, 
+    # or this can be too verbose in new codebases.
+    "clippy::missing_docs_in_private_items",
+
+    # If your code style is to explicitly use `return`, 
+    # you might not want to be nagged about it.
+    "clippy::needless_return",
+
+    # If you have modules with repeated name components, 
+    # this lint can be noisy. 
+    "clippy::module_name_repetitions",
+
+    # This lint sometimes conflicts with certain patterns 
+    # or domain-specific naming conventions.
+    "clippy::use_self",
+]
+
+# -----------------------------
+# CFG-BASED CONTROLS
+# -----------------------------
+# You can configure or override specific lints further.

@@ -8,14 +8,8 @@ pub fn is_pet_id_route(path: &str) -> Result<String> {
     }
 }
 
-pub fn display_some<T>(value: &Option<T>) -> askama::Result<String>
-where
-    T: std::fmt::Display,
-{
-    Ok(match value {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    })
+pub fn display_some(value: &str) -> askama::Result<String> {
+    Ok(value.to_string())
 }
 
 pub fn snake_case(input: &str) -> Result<String> {

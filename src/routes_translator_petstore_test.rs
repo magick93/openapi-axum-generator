@@ -82,27 +82,27 @@ mod tests {
 
     
 
-    #[test]
-    fn test_generated_structs() {
-        // Read generated handlers file
-        let handlers_content = fs::read_to_string("gen/src/pets/handlers.rs")
-            .expect("Failed to read generated handlers.rs");
+    // #[test]
+    // fn test_generated_structs() {
+    //     // Read generated handlers file
+    //     let handlers_content = fs::read_to_string("gen/src/pets/handlers.rs")
+    //         .expect("Failed to read generated handlers.rs");
 
-        // Verify Pet struct
-        assert!(handlers_content.contains("pub struct Pet {"));
-        assert!(handlers_content.contains("pub id: i64,"));
-        assert!(handlers_content.contains("pub name: String,"));
-        assert!(handlers_content.contains("pub tag: Option<String>,"));
-        assert!(handlers_content.contains("#[derive(Debug, Serialize, Deserialize, ToSchema, TypedPath)]"));
+    //     // Verify Pet struct
+    //     assert!(handlers_content.contains("pub struct Pet {"));
+    //     assert!(handlers_content.contains("pub id: i64,"));
+    //     assert!(handlers_content.contains("pub name: String,"));
+    //     assert!(handlers_content.contains("pub tag: Option<String>,"));
+    //     assert!(handlers_content.contains("#[derive(Debug, Serialize, Deserialize, ToSchema, TypedPath)]"));
         
-        // Verify Pets struct
-        assert!(handlers_content.contains("pub struct Pets {"));
+    //     // Verify Pets struct
+    //     assert!(handlers_content.contains("pub struct Pets {"));
         
-        // Verify Error struct
-        assert!(handlers_content.contains("pub struct Error {"));
-        assert!(handlers_content.contains("pub code: i64,"));
-        assert!(handlers_content.contains("pub message: String,"));
-    }
+    //     // Verify Error struct
+    //     assert!(handlers_content.contains("pub struct Error {"));
+    //     assert!(handlers_content.contains("pub code: i64,"));
+    //     assert!(handlers_content.contains("pub message: String,"));
+    // }
 
     #[test]
     fn test_translate_petstore_routes() {

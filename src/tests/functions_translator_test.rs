@@ -9,7 +9,6 @@ mod tests {
     };
     use crate::file_utils;
     use openapiv3::ReferenceOr;
-    use std::fmt::Debug;
     use std::path::PathBuf;
 
     fn init() {

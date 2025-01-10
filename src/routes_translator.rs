@@ -21,6 +21,12 @@ fn escape_rust_keyword(name: &str) -> String {
 
 pub struct RoutesTranslator;
 
+impl Default for RoutesTranslator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoutesTranslator {
     pub fn new() -> Self {
         Self

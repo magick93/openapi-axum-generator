@@ -4,6 +4,12 @@ use crate::routes::keywords::escape_rust_keyword;
 
 pub struct RoutesTranslator;
 
+impl Default for RoutesTranslator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoutesTranslator {
     pub fn new() -> Self {
         Self

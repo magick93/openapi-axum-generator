@@ -289,7 +289,7 @@ impl FunctionSignature {
                                 if let Some(content) = body.content.get("application/json") {
                                     if let Some(schema) = &content.schema {
                                         func_sig.request_body = Some(RequestBodySignature {
-                                            rust_type: schema_to_rust_type(&schema),
+                                            rust_type: schema_to_rust_type(schema),
                                             description: body.description.clone(),
                                         });
                                     }
@@ -307,7 +307,7 @@ impl FunctionSignature {
                                                 _ => 200, // Default to 200 OK if status code is not a numeric value
                                             },
                                             description: Some(response.description.clone()),
-                                            rust_type: Some(schema_to_rust_type(&schema)),
+                                            rust_type: Some(schema_to_rust_type(schema)),
                                         });
                                     }
                                 }
@@ -342,9 +342,7 @@ fn schema_to_rust_type(schema: &ReferenceOr<Schema>) -> String {
             }
             openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => s
                 .schema_data
-                .title
-                .as_ref()
-                .map(|t| t.clone())
+                .title.clone()
                 .unwrap_or_else(|| "serde_json::Value".to_string()),
             _ => "serde_json::Value".to_string(),
         },

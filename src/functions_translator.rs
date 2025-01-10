@@ -284,15 +284,13 @@ impl FunctionSignature {
                             }
                         }
 
-                        if let Some(body) = &operation.request_body {
-                            if let ReferenceOr::Item(body) = body {
-                                if let Some(content) = body.content.get("application/json") {
-                                    if let Some(schema) = &content.schema {
-                                        func_sig.request_body = Some(RequestBodySignature {
-                                            rust_type: schema_to_rust_type(schema),
-                                            description: body.description.clone(),
-                                        });
-                                    }
+                        if let Some(ReferenceOr::Item(body)) = &operation.request_body {
+                            if let Some(content) = body.content.get("application/json") {
+                                if let Some(schema) = &content.schema {
+                                    func_sig.request_body = Some(RequestBodySignature {
+                                        rust_type: schema_to_rust_type(schema),
+                                        description: None,
+                                    });
                                 }
                             }
                         }

@@ -1,10 +1,12 @@
-use openapiv3::{OpenAPI, PathItem, ReferenceOr, Schema, StatusCode};
+use openapiv3::{OpenAPI, ReferenceOr, Schema, StatusCode};
+use heck::ToSnakeCase;
+use serde::Serialize;
 
 
 
 
 /// Describes a single function signature to be generated.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct FunctionSignature {
     /// The doc comments that will appear above the function definition.
     /// Example:
@@ -24,7 +26,7 @@ pub struct FunctionSignature {
     pub path: String,
 
     /// An optional 'tag' or category for grouping endpoints (e.g. "Todo").
-    pub tag: Option<String>,
+    pub tag: String,
 
     /// A short summary or description of what the endpoint does.
     /// This can help populate doc comments or openapi "summary" fields.
@@ -47,7 +49,7 @@ pub struct FunctionSignature {
 }
 
 /// Describes a parameter that appears in a function signature (path, query, etc.).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ParameterSignature {
     /// The parameter name (e.g. "todo_id").
     pub name: String,
@@ -63,14 +65,14 @@ pub struct ParameterSignature {
 }
 
 /// Indicates whether a parameter is found in a path, query, header, etc.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ParameterLocation {
     Path,
     Query,
     Header,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RequestBodySignature {
     /// The Rust type that represents the request body (e.g. "CreateTodo").
     pub rust_type: String,
@@ -80,7 +82,7 @@ pub struct RequestBodySignature {
 }
 
 /// Describes one possible response from the function (status code, body, etc.).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ResponseSignature {
     /// The HTTP status code (e.g. 200, 404, etc.).
     pub status: u16,
@@ -93,14 +95,69 @@ pub struct ResponseSignature {
 }
 
 impl FunctionSignature {
+    /// Converts a string to snake_case format
+    /// Examples:
+    /// "HelloWorld" -> "hello_world"
+    /// "getUserInfo" -> "get_user_info"
+    /// "SomeHTTPRequest" -> "some_http_request"
+    /// "get_api_v4_network_validators_validatorsByClusterHash_clusterHash" -> "get_network_validators_validators_by_cluster_hash"
+    fn to_snake_case(input: &str) -> String {
+        let mut result = input.to_snake_case();
+        
+        // Remove any "api_v4_" prefix
+        if result.contains("api_v4_") {
+            result = result.replace("api_v4_", "")
+        }
+
+        // Remove any "v4_" prefix
+        if result.contains("v4") {
+            result = result.replace("v4", "")
+        }
+
+        // Remove any "api"
+        // if result.contains("api") {
+            result = result.replace("api", "");
+        // }
+
+        // if there is a double underscore, remove one
+        if result.contains("__") {
+            result = result.replace("__", "_")
+        }
+        
+
+        // Remove any underscores at the start or end of the string
+        result.starts_with("_").then(|| result = result[1..].to_string());        
+        result.ends_with("_").then(|| result = result[..result.len()-1].to_string());
+
+        //replace any "post" prefix with "create"
+        result.starts_with("post_").then(|| result = result.replace("post_", "create_")); 
+
+        // if starts with "search_" and ends with "_search" remove the "_search" part
+        if result.starts_with("search_") && result.ends_with("_search") {
+            result = result.replace("_search", "")
+        }
+        // Add "get_" prefix if the name doesn't start with a known verb
+        else if !result.starts_with("get_") && 
+                !result.starts_with("create_") && 
+                !result.starts_with("update_") && 
+                !result.starts_with("delete_") && 
+                !result.starts_with("search_") {
+            result = format!("get_{}", result);
+        }
+
+
+
+        result
+    }
+
     pub fn new() -> Self {
         Self {
             doc_comment: None,
             fn_name: String::new(),
-            is_async: false,
-            http_method: "GET".to_string(),
+            is_async: true,
+            http_method: String::new(),
             path: String::new(),
-            tag: None,
+            tag: String::new(),
             summary: None,
             params: Vec::new(),
             request_body: None,
@@ -153,13 +210,13 @@ impl FunctionSignature {
                             }
                         });
 
-                        // Set folder to the first tag if available, else default, excluding "v4"
-                        func_sig.folder = operation.tags.first()
-                            .unwrap_or(&"default".to_string())
-                            .replace("v4", "")
-                            .replace("__", "_") // Clean up double underscores from v4 removal
-                            .trim_matches('_') // Clean up leading/trailing underscores
-                            .to_string();
+                        func_sig.fn_name = FunctionSignature::to_snake_case(&func_sig.fn_name);
+
+                        // Set folder to first non-v4 tag if available, else default
+                        func_sig.folder = operation.tags.iter()
+                            .find(|&tag| tag != "v4")
+                            .map(|tag| tag.to_string())
+                            .unwrap_or_else(|| "default".to_string());
 
 
                         if let Some(description) = &operation.description {
@@ -177,7 +234,7 @@ impl FunctionSignature {
                         func_sig.is_async = true;
 
                         if !operation.tags.is_empty() {
-                            func_sig.tag = operation.tags.first().cloned();
+                            func_sig.tag = operation.tags.first().unwrap().clone();
                         }
 
                         func_sig.summary = operation.summary.clone();

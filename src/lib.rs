@@ -1,4 +1,5 @@
 use askama::Template;
+use log::{debug, error, info, warn};
 
 use openapiv3::OpenAPI;
 use serde::Serialize;
@@ -115,20 +116,28 @@ pub struct SchemaField {
 
 impl AxumTemplate<'_> {
     pub fn from_openapi<'a>(openapi: &'a OpenAPI) -> Vec<(String, String)> {
+        info!("Starting OpenAPI translation");
         let routes_translator = RoutesTranslator::new();
         let schemas_translator = SchemasTranslator::new();
         let functions_translator = FunctionSignature::new();
 
+        debug!("Initialized translators");
+
         let routes = routes_translator.translate(openapi);
+        debug!("Translated {} routes", routes.len());
+        
         let schemas = schemas_translator.translate(openapi);
+        debug!("Translated {} schemas", schemas.len());
 
         let mut modules = Vec::new();
         let mut module_routes = std::collections::HashMap::new();
+        debug!("Starting module organization");
         
 
         for route in routes {
             let path_parts: Vec<&str> = route.path.split('/').filter(|s| !s.is_empty()).collect();
             let module_path = path_parts[0].to_string();
+            debug!("Processing route: {} -> module: {}", route.path, module_path);
 
             if !modules.contains(&module_path) {
                 modules.push(module_path.clone());
@@ -141,8 +150,10 @@ impl AxumTemplate<'_> {
         }
 
         let mut files = Vec::new();
+        info!("Generating handler files for {} modules", module_routes.len());
 
         for (module, routes) in module_routes {
+            debug!("Generating handlers for module: {}", module);
             let routes_without_tags = routes
                 .into_iter()
                 .map(|route| RouteWithoutTags {
@@ -180,14 +191,33 @@ impl AxumTemplate<'_> {
 
             template.folders = folders;
 
-            let content = template.render().unwrap();
+            let content = match template.render() {
+                Ok(content) => {
+                    debug!("Successfully rendered template for module: {}", module);
+                    content
+                }
+                Err(e) => {
+                    error!("Failed to render template for module {}: {}", module, e);
+                    continue;
+                }
+            };
             files.push((format!("src/{}/handlers.rs", module), content));
         }
 
         let mod_template = ModTemplate { modules };
-        let mod_content = mod_template.render().unwrap();
+        let mod_content = match mod_template.render() {
+            Ok(content) => {
+                debug!("Successfully rendered mod.rs template");
+                content
+            }
+            Err(e) => {
+                error!("Failed to render mod.rs template: {}", e);
+                return files;
+            }
+        };
         files.push(("src/mod.rs".to_string(), mod_content));
 
+        info!("Completed OpenAPI translation, generated {} files", files.len());
         files
     }
 }

@@ -3,12 +3,29 @@ name = "openapi-axum-generator"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-clap = { version = "4.5.23", features = ["derive"] }
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.134"
-openapiv3 = "2.0.0"
-axum = "0.8.1"
-utoipa = "5.3.0"
-askama = "0.12.1"
+[general]
+# Directories to search for templates, relative to the crate root.
+dirs = ["templates"]
+# Unless you add a `-` in a block, whitespace characters won't be trimmed.
+whitespace = "preserve"
 
+
+[dependencies]
+openapiv3 = "2.0.0"
+heck = "0.4.1"
+indexmap = "2.0.0"
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tera = "1.19.0"
+axum = "0.6.20"
+tokio = { version = "1.0", features = ["full"] }
+hyper = { version = "0.14", features = ["full"] }
+tower = "0.4.13"
+tower-http = "0.4.0"
+askama = { version = "0.12.1", features = ["with-axum"] }
+askama_axum = "0.4.0"
+schematools = "0.19.2"
+serde_yaml = "0.9.34"
+log = "0.4.22"
+env_logger = "0.11.6"

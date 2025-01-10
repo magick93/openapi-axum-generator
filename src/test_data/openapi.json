@@ -1,5 +1,17 @@
 {
   "openapi": "3.0.0",
+  "info": {
+    "version": "0.1.0",
+    "title": "ssv api",
+    "description": "A SSV API that by Sigmaprime - OpenAPI 3.0 specification",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "name": "Swagger API Team"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
   "paths": {
     "/api/v4/{network}/accounts": {
       "get": {
@@ -2203,12 +2215,7 @@
       }
     }
   },
-  "info": {
-    "title": "API",
-    "description": "",
-    "version": "0.0.1",
-    "contact": {}
-  },
+
   "tags": [],
   "servers": [],
   "components": {

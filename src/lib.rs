@@ -1,5 +1,6 @@
 use askama::Template;
 use log::{debug, error, info};
+use std::path::PathBuf;
 
 use openapiv3::OpenAPI;
 use serde::Serialize;
@@ -7,6 +8,7 @@ use serde::Serialize;
 pub mod file_utils;
 pub mod filters;
 pub mod functions_translator;
+pub mod reporter;
 pub mod routes;
 pub mod routes_translator;
 pub mod schema_generator;
@@ -119,11 +121,12 @@ pub struct SchemaField {
 }
 
 impl AxumTemplate<'_> {
-    pub fn from_openapi(openapi: &OpenAPI) -> Vec<(String, String)> {
+    pub fn from_openapi(openapi: &OpenAPI) -> (Vec<(String, String)>, String) {
         info!("Starting OpenAPI translation");
         let routes_translator = RoutesTranslator::new();
         let schemas_translator = SchemasTranslator::new();
         let functions_translator = FunctionSignature::new();
+        let mut reporter = reporter::Reporter::new();
 
         debug!("Initialized translators");
 
@@ -214,12 +217,20 @@ impl AxumTemplate<'_> {
             }
             Err(e) => {
                 error!("Failed to render mod.rs template: {}", e);
-                return files;
+                return (files, String::new());
             }
         };
         files.push(("src/mod.rs".to_string(), mod_content));
 
         info!("Completed OpenAPI translation, generated {} files", files.len());
-        files
+        
+        // Record generated files in reporter
+        for (path, content) in &files {
+            let line_count = content.lines().count();
+            reporter.record_file(PathBuf::from(path), line_count);
+        }
+
+        let report = reporter.print_report();
+        (files, report)
     }
 }

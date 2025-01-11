@@ -4,6 +4,7 @@ use std::{fs, io, path::Path};
 
 mod file_utils;
 mod schema_generator;
+mod reporter;   
 
 use crate::file_utils::openapi_from_file;
 
@@ -58,7 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     schema_generator::generate_types_from_schemas(output_dir)?;
 
     // Generate files
-    let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
+    let (files, report) = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
     // Write all generated files using helper function
     for (file_path, content) in files.into_iter() {
@@ -67,6 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("Successfully generated Axum server code in {}", output_dir);
+    println!("\n{}", report);
     Ok(())
 }
 

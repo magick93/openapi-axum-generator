@@ -3,8 +3,12 @@ use std::path::Path;
 use schemars;
 use typify::{TypeSpace, TypeSpaceSettings};
 
+use crate::reporter::Reporter;
+
+
 pub fn generate_types_from_schemas(output_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     let schema_dir = Path::new("src/test_data/schemas");
+    let mut reporter = Reporter::new();
     
     // Create output directory if it doesn't exist
     let output_dir = Path::new(output_dir).join("generated_types");
@@ -46,6 +50,9 @@ pub fn generate_types_from_schemas(output_dir: &str) -> Result<(), Box<dyn std::
             let generated = tokens.to_string();
             fs::write(&output_path, &generated)?;
             
+            // Track generated file
+            reporter.record_file(output_path.to_path_buf(), 0); // Line count not available here
+            
             // Format the generated file using rustfmt
             let status = std::process::Command::new("rustfmt")
                 .arg(&output_path)
@@ -56,6 +63,9 @@ pub fn generate_types_from_schemas(output_dir: &str) -> Result<(), Box<dyn std::
             }
         }
     }
+    
+    // Display generation report
+    println!("{}", reporter.print_report());
     
     Ok(())
 }

@@ -3,7 +3,7 @@ use clap::{Arg, Command};
 use std::{fs, io, path::Path};
 
 mod file_utils;
-
+mod schema_generator;
 
 use crate::file_utils::openapi_from_file;
 
@@ -53,6 +53,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load and parse OpenAPI spec
     let openapi_spec = openapi_from_file(input_file)?;
+
+    // Generate schema types
+    schema_generator::generate_types_from_schemas(output_dir)?;
 
     // Generate files
     let files = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);

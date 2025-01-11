@@ -3,12 +3,12 @@ use std::path::Path;
 use schemars;
 use typify::{TypeSpace, TypeSpaceSettings};
 
-pub fn generate_types_from_schemas() -> Result<(), Box<dyn std::error::Error>> {
+pub fn generate_types_from_schemas(output_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     let schema_dir = Path::new("src/test_data/schemas");
     
     // Create output directory if it doesn't exist
-    let output_dir = Path::new("src/generated_types");
-    fs::create_dir_all(output_dir)?;
+    let output_dir = Path::new(output_dir).join("generated_types");
+    fs::create_dir_all(&output_dir)?;
 
     // Process each JSON schema file
     for entry in fs::read_dir(schema_dir)? {
@@ -33,7 +33,7 @@ pub fn generate_types_from_schemas() -> Result<(), Box<dyn std::error::Error>> {
             type_space.add_root_schema(root_schema)?;
             
             // Generate output file path
-            let output_path = output_dir.join(
+            let output_path = &output_dir.join(
                 path.file_stem()
                     .unwrap()
                     .to_str()

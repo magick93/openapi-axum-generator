@@ -9,14 +9,18 @@ pub mod filters;
 pub mod functions_translator;
 pub mod routes;
 pub mod routes_translator;
+pub mod schema_generator;
+pub mod schemas_translator;
+pub mod test_utils;
+
+pub use schema_generator::generate_types_from_schemas;
+
 #[cfg(test)]
 mod routes_translator_petstore_test;
 #[cfg(test)]
 mod routes_translator_test;
 #[cfg(test)]
 mod routes_translator_uspto_test;
-pub mod schemas_translator;
-pub mod test_utils;
 
 use functions_translator::FunctionSignature;
 use routes_translator::RoutesTranslator;
@@ -180,13 +184,11 @@ impl AxumTemplate<'_> {
                 folders.insert(function.folder.clone());
             }
 
-
             let mut template = AxumTemplate::new(
                 openapi,
                 routes_without_tags,
                 schemas.clone(),
                 functions,
-                
             );
 
             template.folders = folders;

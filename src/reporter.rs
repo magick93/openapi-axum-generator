@@ -19,13 +19,20 @@ impl Reporter {
     pub fn print_report(&self) -> String {
         let mut report = String::new();
         report.push_str("Generated Files Report:\n");
-        report.push_str("======================\n");
-        
+        report.push_str("┌───────────────────────────────────────────────┬───────────┐\n");
+        report.push_str("│ File Path                                     │ Lines     │\n");
+        report.push_str("├───────────────────────────────────────────────┼───────────┤\n");
+
         for (path, lines) in &self.generated_files {
-            report.push_str(&format!("- {} ({} lines)\n", path.display(), lines));
+            let path_str = path.to_string_lossy();
+            report.push_str(&format!(
+                "│ {:<45} │ {:>9} │\n",
+                path_str,
+                lines
+            ));
         }
-        
-        report.push_str(&format!("\nTotal files generated: {}", self.generated_files.len()));
+
+        report.push_str("└───────────────────────────────────────────────┴───────────┘\n");
         report
     }
 }

@@ -1,11 +1,11 @@
 use clap::{Arg, Command};
-
 use std::{fs, io, path::Path};
 
 mod file_utils;
 mod schema_generator;
-mod reporter;   
+mod reporter;
 
+use crate::reporter::Reporter;
 use crate::file_utils::openapi_from_file;
 
 /// Helper function to write content to a file, creating parent directories if needed
@@ -55,28 +55,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load and parse OpenAPI spec
     let openapi_spec = openapi_from_file(input_file)?;
 
+    // Initialize reporter
+    let mut reporter = Reporter::new();
+    
     // Generate schema types
-    schema_generator::generate_types_from_schemas(output_dir)?;
+    schema_generator::generate_types_from_schemas(output_dir, &mut reporter)?;
 
-    // Generate files
-    let (files, report) = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
+    // Generate files and get report
+    let (files, _report) = openapi_axum_generator::AxumTemplate::from_openapi(&openapi_spec);
 
     // Write all generated files using helper function
-    for (file_path, content) in files.into_iter() {
+    for (file_path, content) in files {
         let full_path = Path::new(output_dir).join(file_path);
         write_file_with_path(&full_path, &content)?;
+        
+        // Track generated file with actual line count
+        let line_count = content.lines().count();
+        reporter.record_file(full_path, line_count);
     }
 
     println!("Successfully generated Axum server code in {}", output_dir);
-    println!("\n{}", report);
+    println!("\n{}", reporter.print_report());
     Ok(())
 }
 
-
 fn init() {
-        let _ = env_logger::builder()
-            .target(env_logger::Target::Stdout)
-            .filter_level(log::LevelFilter::Trace)
-            .is_test(true)
-            .try_init();
-    }
+    let _ = env_logger::builder()
+        .target(env_logger::Target::Stdout)
+        .filter_level(log::LevelFilter::Trace)
+        .is_test(true)
+        .try_init();
+}

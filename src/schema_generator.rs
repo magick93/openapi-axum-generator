@@ -44,7 +44,16 @@ pub fn generate_types_from_schemas(output_dir: &str) -> Result<(), Box<dyn std::
             // Write the generated types
             let tokens = type_space.to_stream();
             let generated = tokens.to_string();
-            fs::write(output_path, generated)?;
+            fs::write(&output_path, &generated)?;
+            
+            // Format the generated file using rustfmt
+            let status = std::process::Command::new("rustfmt")
+                .arg(&output_path)
+                .status()?;
+            
+            if !status.success() {
+                return Err(format!("Failed to format {} with rustfmt", output_path.display()).into());
+            }
         }
     }
     

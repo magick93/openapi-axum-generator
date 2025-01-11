@@ -9,7 +9,6 @@ dirs = ["templates"]
 # Unless you add a `-` in a block, whitespace characters won't be trimmed.
 whitespace = "preserve"
 
-
 [dependencies]
 openapiv3 = "2.0.0"
 heck = "0.4.1"
@@ -30,3 +29,8 @@ serde_yaml = "0.9.34"
 log = "0.4.22"
 env_logger = "0.11.6"
 typify = "0.3.0"
+schemars = "0.8.15"
+quote = "1.0.35"
+
+[dev-dependencies]
+tempfile = "3.10"
